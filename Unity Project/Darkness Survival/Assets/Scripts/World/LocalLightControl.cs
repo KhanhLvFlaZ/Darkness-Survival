@@ -14,19 +14,53 @@ public class LocalLightControl : MonoBehaviour
     private void Awake()
     {
         spotLight = GetComponent<Light2D>();
+        if (spotLight == null)
+        {
+            Debug.LogError("LocalLightControl requires a Light2D component on the same GameObject.", this);
+            enabled = false;
+            return;
+        }
+
         maxIntensity = spotLight.intensity;
     }
 
     private void Start()
     {
+        if (!enabled)
+        {
+            return;
+        }
+
         if(globalLight == null)
         {
-            globalLight = GameObject.FindGameObjectWithTag("GlobalLight").GetComponent<Light2D>();
+            GameObject globalLightObj = GameObject.FindGameObjectWithTag("GlobalLight");
+            if (globalLightObj != null)
+            {
+                globalLight = globalLightObj.GetComponent<Light2D>();
+                if (globalLight == null)
+                {
+                    Debug.LogWarning("LocalLightControl found 'GlobalLight' object but it lacks a Light2D component.", globalLightObj);
+                }
+            }
+            else
+            {
+                Debug.LogWarning("LocalLightControl could not find an object tagged 'GlobalLight'.", this);
+            }
+        }
+
+        if (globalLight == null)
+        {
+            enabled = false;
         }
     }
 
     void Update()
     {
+        if (!enabled)
+        {
+            return;
+        }
+
         AdjustSpotLightIntensity(globalLight.intensity);
     }
 
