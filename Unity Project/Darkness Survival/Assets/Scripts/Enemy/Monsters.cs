@@ -83,6 +83,16 @@ public class Monsters : MonoBehaviour, IDamageable
         set { speed = value; }
     }
 
+    public float CURRENT_SPEED
+    {
+        get { return currentSpeed; }
+    }
+
+    public bool IS_KNOCKED_BACK
+    {
+        get { return isKnockedBack; }
+    }
+
     public float HP
     {
         get { return hp; }
@@ -92,6 +102,21 @@ public class Monsters : MonoBehaviour, IDamageable
     public float MAX_HP
     {
         get { return maxHp; }
+    }
+
+    public bool IS_SPIRIT
+    {
+        get { return isSpirit; }
+    }
+
+    public float ATTACK_COOLDOWN_REMAINING
+    {
+        get { return Mathf.Max(timer, 0f); }
+    }
+
+    public ObjectsDetection OBJECTS_DETECTION
+    {
+        get { return objectsDetection; }
     }
 
     // - Awake 

@@ -8,6 +8,8 @@ public class Level : MonoBehaviour
 
     int level = 1;
     int experience = 0;
+    [SerializeField] int baseExperienceToLevel = 1500;
+    [SerializeField, Range(1f, 3f)] float experienceGrowthFactor = 5f;
     [SerializeField] ExperienceBar experienceBar;
     [SerializeField] UpgradePanelManager upgradePanel;
 
@@ -47,7 +49,8 @@ public class Level : MonoBehaviour
     {
         get
         {
-            return level * 1000;
+            float growth = Mathf.Pow(Mathf.Max(experienceGrowthFactor, 1f), level - 1);
+            return Mathf.RoundToInt(baseExperienceToLevel * growth);
         }
     }
 

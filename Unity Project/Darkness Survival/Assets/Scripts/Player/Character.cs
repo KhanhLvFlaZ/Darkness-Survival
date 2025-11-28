@@ -88,6 +88,11 @@ public class Character : MonoBehaviour
         set { armor = value; }
     }
 
+    public float CURRENT_HP
+    {
+        get { return currentHp; }
+    }
+
     /////////////////////////
     
     // Take Damage function 
