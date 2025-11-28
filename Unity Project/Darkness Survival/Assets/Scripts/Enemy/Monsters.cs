@@ -22,7 +22,7 @@ public class Monsters : MonoBehaviour, IDamageable
     float hp;
 
     [SerializeField] float damage = 12f;
-    [SerializeField] float speed = 2.5f * 0.4f;
+    [SerializeField] float speed = 2.5f * 0.25f;
     [SerializeField] int soulsReward = 30;
 
     // Changeable stats //
@@ -63,7 +63,13 @@ public class Monsters : MonoBehaviour, IDamageable
     //////////////
 
     [SerializeField] StatusBar hpBar;
-    bool isBoss = false;
+    [SerializeField] GameObject hpBarPrefab;
+    [SerializeField] Vector3 hpBarOffset = new Vector3(0f, 0f, 0f);
+    [SerializeField] bool autoConfigureHpBar = true;
+    [SerializeField] float hpBarVerticalPadding = 0.2f;
+    [SerializeField] float hpBarWidthMultiplier = 1f;
+    [SerializeField] float hpBarMinWidth = 0.75f;
+    bool hasHpBar = false;
     Vector3 offset;
 
     //////////////
@@ -141,11 +147,22 @@ public class Monsters : MonoBehaviour, IDamageable
         hp = Random.Range(minHp, maxHp);
         maxHp = hp;
 
+        if(hpBar == null && hpBarPrefab != null)
+        {
+            GameObject hpBarInstance = Instantiate(hpBarPrefab, transform.position + hpBarOffset, Quaternion.identity, null);
+            hpBar = hpBarInstance.GetComponent<StatusBar>();
+
+            if(hpBar != null)
+            {
+                hpBar.transform.SetParent(transform);
+            }
+        }
+
         if(hpBar != null)
         {
             hpBar.SetState(hp, maxHp);
-            isBoss = true;
-            offset = hpBar.transform.position - transform.position;
+            hasHpBar = true;
+            ConfigureHpBar();
         }
     }
 
@@ -159,11 +176,40 @@ public class Monsters : MonoBehaviour, IDamageable
         speed = targetGameobject.GetComponent<PlayerMove>().SPEED * speed;
     }
 
+    void ConfigureHpBar()
+    {
+        if (!hasHpBar || hpBar == null)
+        {
+            return;
+        }
+
+        SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
+
+        if (!autoConfigureHpBar || spriteRenderer == null)
+        {
+            offset = hpBar.transform.position - transform.position;
+            return;
+        }
+
+        Bounds spriteBounds = spriteRenderer.bounds;
+        float calculatedHeight = spriteBounds.size.y * 0.5f;
+        float calculatedWidth = Mathf.Max(spriteBounds.size.x, hpBarMinWidth);
+
+        Vector3 autoOffset = new Vector3(0f, calculatedHeight + hpBarVerticalPadding, 0f);
+        offset = autoOffset + hpBarOffset;
+
+        Transform hpBarTransform = hpBar.transform;
+        hpBarTransform.position = transform.position + offset;
+
+        float desiredWidth = Mathf.Max(calculatedWidth * hpBarWidthMultiplier, hpBarMinWidth);
+        hpBarTransform.localScale = new Vector3(desiredWidth, hpBarTransform.localScale.y, hpBarTransform.localScale.z);
+    }
+
     // - Updates 
 
     private void Update()
     {
-        if (isBoss)
+        if (hasHpBar && hpBar != null)
         {
             hpBar.transform.position = new Vector3(transform.position.x + offset.x, transform.position.y + offset.y, transform.position.z);
         }
@@ -292,7 +338,7 @@ public class Monsters : MonoBehaviour, IDamageable
     public void TakeDamage(float damage)
     {
         hp -= damage;
-        if (isBoss) hpBar.SetState(hp, maxHp);
+        if (hasHpBar && hpBar != null) hpBar.SetState(hp, maxHp);
 
         // Damage message
 
@@ -310,23 +356,10 @@ public class Monsters : MonoBehaviour, IDamageable
 
         if (hp <= 0)
         {
-            //// Heal message 
-
-            //if (check demonic absorption)
-            //{
-            //    float healAmount = 6.5f;
-            //    MessageSystem.instance.PostMessage(healAmount.ToString(), messagePosition, Color.green);
-            //}
-
-            if (simpleFlash != null) simpleFlash.Flash();
-
-            // Additional Damage message
-            //MessageSystem.instance.PostMessage(damage.ToString(), messagePosition);
-
             targetGameobject.GetComponent<Level>().AddExperience(soulsReward);
             GetComponent<DropOnDestroy>().CheckDrop();
 
-            if(isBoss) Destroy(hpBar.gameObject);
+            if(hasHpBar && hpBar != null) Destroy(hpBar.gameObject);
             Destroy(gameObject);
         }
     }

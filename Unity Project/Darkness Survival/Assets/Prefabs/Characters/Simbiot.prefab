@@ -402,6 +402,9 @@ MonoBehaviour:
   objectsDetection: {fileID: 2309065197707047313}
   attackReloadTime: 1
   knockBackTime: 0.1
+  hpBar: {fileID: 0}
+  hpBarPrefab: {fileID: 7034181815126509105, guid: 164a032978b95a34b84061b21dde488c, type: 3}
+  hpBarOffset: {x: 0, y: 1, z: 0}
 --- !u!114 &6889176215184657000
 MonoBehaviour:
   m_ObjectHideFlags: 0
