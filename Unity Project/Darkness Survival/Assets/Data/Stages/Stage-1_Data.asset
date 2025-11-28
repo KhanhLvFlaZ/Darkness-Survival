@@ -20,6 +20,13 @@ MonoBehaviour:
     bossToSpawn: {fileID: 0}
     objectToSpawn: {fileID: 0}
     count: 2
+  - eventType: 2
+    time: 6
+    message: Loot cache A
+    monstersToSpawn: {fileID: 0}
+    bossToSpawn: {fileID: 0}
+    objectToSpawn: {fileID: 3492310776771384499, guid: 122d2b50f7cb40e4e8c1a0d9b6ec7cfd, type: 3}
+    count: 3
   - eventType: 0
     time: 10
     message: Wave 2
@@ -27,6 +34,13 @@ MonoBehaviour:
     bossToSpawn: {fileID: 0}
     objectToSpawn: {fileID: 0}
     count: 2
+  - eventType: 2
+    time: 18
+    message: Loot cache B
+    monstersToSpawn: {fileID: 0}
+    bossToSpawn: {fileID: 0}
+    objectToSpawn: {fileID: 3492310776771384499, guid: 122d2b50f7cb40e4e8c1a0d9b6ec7cfd, type: 3}
+    count: 3
   - eventType: 0
     time: 20
     message: Wave 3
@@ -41,6 +55,13 @@ MonoBehaviour:
     bossToSpawn: {fileID: 0}
     objectToSpawn: {fileID: 0}
     count: 2
+  - eventType: 2
+    time: 32
+    message: Loot cache C
+    monstersToSpawn: {fileID: 0}
+    bossToSpawn: {fileID: 0}
+    objectToSpawn: {fileID: 3492310776771384499, guid: 122d2b50f7cb40e4e8c1a0d9b6ec7cfd, type: 3}
+    count: 4
   - eventType: 0
     time: 40
     message: Wave 5
@@ -48,6 +69,13 @@ MonoBehaviour:
     bossToSpawn: {fileID: 0}
     objectToSpawn: {fileID: 0}
     count: 2
+  - eventType: 2
+    time: 48
+    message: Loot cache D
+    monstersToSpawn: {fileID: 0}
+    bossToSpawn: {fileID: 0}
+    objectToSpawn: {fileID: 3492310776771384499, guid: 122d2b50f7cb40e4e8c1a0d9b6ec7cfd, type: 3}
+    count: 4
   - eventType: 0
     time: 45
     message: Wave 6
@@ -69,6 +97,13 @@ MonoBehaviour:
     bossToSpawn: {fileID: 0}
     objectToSpawn: {fileID: 0}
     count: 2
+  - eventType: 2
+    time: 58
+    message: Loot cache E
+    monstersToSpawn: {fileID: 0}
+    bossToSpawn: {fileID: 0}
+    objectToSpawn: {fileID: 3492310776771384499, guid: 122d2b50f7cb40e4e8c1a0d9b6ec7cfd, type: 3}
+    count: 5
   - eventType: 1
     time: 60
     message: Boss incoming
@@ -83,6 +118,13 @@ MonoBehaviour:
     bossToSpawn: {fileID: 0}
     objectToSpawn: {fileID: 0}
     count: 2
+  - eventType: 2
+    time: 68
+    message: Loot cache F
+    monstersToSpawn: {fileID: 0}
+    bossToSpawn: {fileID: 0}
+    objectToSpawn: {fileID: 3492310776771384499, guid: 122d2b50f7cb40e4e8c1a0d9b6ec7cfd, type: 3}
+    count: 5
   - eventType: 0
     time: 75
     message: Final push

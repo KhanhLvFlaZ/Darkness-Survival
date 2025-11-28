@@ -7,6 +7,12 @@ public class StageEventManager : MonoBehaviour
 {
     [SerializeField] StageData stageData;
     [SerializeField] EnemiesManager enemiesManager;
+    [Header("Object Spawn Settings")]
+    [SerializeField] bool spawnObjectsOffScreen = true;
+    [SerializeField] float objectOffScreenBuffer = 2f;
+    [SerializeField] float objectSpawnRingThickness = 3f;
+    [SerializeField] float objectMinSeparation = 1.5f;
+    [SerializeField] int objectSpawnMaxAttempts = 12;
 
     StageTimer stageTimer;
     int eventIndexer;
@@ -76,17 +82,56 @@ public class StageEventManager : MonoBehaviour
 
     private void SpawnObject()
     {
+        List<Vector3> generatedPositions = new List<Vector3>();
         for (int i = 0; i < stageData.stageEvents[eventIndexer].count; ++i)
         {
-            Vector3 positionToSpawn = GameManager.instance.playerTransform.position;
-            positionToSpawn += UtilityTools.GenerateRandomPositionSquarePattern(
-                new Vector2(5f, 5f),
-                new Vector2(0f, 0f));
+            Vector3 positionToSpawn = spawnObjectsOffScreen
+                ? GenerateOffScreenSpawnPosition(generatedPositions)
+                : GameManager.instance.playerTransform.position + UtilityTools.GenerateRandomPositionSquarePattern(new Vector2(5f, 5f), Vector2.zero);
+
+            generatedPositions.Add(positionToSpawn);
 
             SpawnManager.instance.SpawnObject(
                 positionToSpawn,
                 stageData.stageEvents[eventIndexer].objectToSpawn
                 );
         }
+    }
+
+    Vector3 GenerateOffScreenSpawnPosition(List<Vector3> existingPositions)
+    {
+        Transform playerTransform = GameManager.instance.playerTransform;
+        Vector3 playerPosition = playerTransform != null ? playerTransform.position : Vector3.zero;
+
+        Camera mainCamera = Camera.main;
+        float verticalExtent = mainCamera != null ? mainCamera.orthographicSize : 5f;
+        float horizontalExtent = mainCamera != null ? mainCamera.orthographicSize * mainCamera.aspect : 5f;
+        float minDistance = Mathf.Max(horizontalExtent, verticalExtent) + objectOffScreenBuffer;
+        float maxDistance = minDistance + objectSpawnRingThickness;
+
+        Vector3 candidate = playerPosition;
+        for (int attempt = 0; attempt < objectSpawnMaxAttempts; attempt++)
+        {
+            float angle = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
+            float distance = UnityEngine.Random.Range(minDistance, maxDistance);
+            candidate = playerPosition + new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f) * distance;
+
+            bool overlaps = false;
+            foreach (Vector3 existing in existingPositions)
+            {
+                if (Vector2.Distance(existing, candidate) < objectMinSeparation)
+                {
+                    overlaps = true;
+                    break;
+                }
+            }
+
+            if (!overlaps)
+            {
+                return candidate;
+            }
+        }
+
+        return candidate;
     }
 }
