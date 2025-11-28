@@ -54,7 +54,7 @@ public class PlayerMove : MonoBehaviour
     
     public float SPEED
     {
-        get { return defaultSpeed; }
+        get { return currentSpeed; }
         set { currentSpeed = value; }
 
         // Not card speed ( maybe more useful )

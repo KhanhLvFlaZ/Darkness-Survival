@@ -23,6 +23,7 @@ public class Monsters : MonoBehaviour, IDamageable
 
     [SerializeField] float damage = 8f;
     [SerializeField] float speed = 2.5f * 0.25f;
+    [SerializeField, Range(0.1f, 0.99f)] float maxSpeedRatioToPlayer = 0.85f;
     [SerializeField] int soulsReward = 30;
 
     // Changeable stats //
@@ -174,7 +175,16 @@ public class Monsters : MonoBehaviour, IDamageable
     {
         targetGameobject = target;
         targetDestination = target.transform;
-        speed = targetGameobject.GetComponent<PlayerMove>().SPEED * speed;
+
+        PlayerMove playerMove = targetGameobject.GetComponent<PlayerMove>();
+        if (playerMove != null)
+        {
+            float playerSpeed = Mathf.Max(playerMove.SPEED, 0.01f);
+            float desiredSpeed = playerSpeed * speed;
+            float maxAllowedSpeed = playerSpeed * maxSpeedRatioToPlayer;
+            speed = Mathf.Min(desiredSpeed, maxAllowedSpeed);
+            currentSpeed = speed;
+        }
     }
 
     void ConfigureHpBar()
