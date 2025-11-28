@@ -273,6 +273,13 @@ MonoBehaviour:
   attackReloadTime: 0.3
   knockBackTime: 0.1
   hpBar: {fileID: 5047592370735743804}
+  hpBarPrefab: {fileID: 0}
+  hpBarOffset: {x: 0, y: 0, z: 0}
+  autoConfigureHpBar: 0
+  hpBarVerticalPadding: 0.2
+  hpBarWidthMultiplier: 1
+  hpBarMinWidth: 0.75
+  hpBarHeightMultiplier: 0.4
 --- !u!114 &8578992759787760493
 MonoBehaviour:
   m_ObjectHideFlags: 0
