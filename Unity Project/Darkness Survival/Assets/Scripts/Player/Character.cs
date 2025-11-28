@@ -6,15 +6,15 @@ using UnityEngine;
 public class Character : MonoBehaviour
 {
     [Header("Stats")]
-    [SerializeField] float maxHp = 150f;
-    [SerializeField] float armor = 1f;
+    [SerializeField] float maxHp = 200f;
+    [SerializeField] float armor = 2f;
     
-    float defaultArmor = 1f;
+    float defaultArmor = 2f;
     float defaultMaxHp;
 
     [Space]
     [Header("Settings")]
-    [SerializeField] float currentHp = 150f;
+    [SerializeField] float currentHp = 200f;
     [SerializeField] StatusBar hpBar;
 
     [HideInInspector] public bool isDamaged;

@@ -10,8 +10,9 @@ public class ControlCyberSword : MonoBehaviour
     [SerializeField] float firstHitDamage = 8f;
     [SerializeField] float secondHitDamage = 12f;
 
-    [SerializeField] float firstKnockBackForce = 4f;
-    [SerializeField] float secondKnockBackForce = 7f;
+    [SerializeField] float firstKnockBackForce = 12f;
+    [SerializeField] float secondKnockBackForce = 21f;
+    [SerializeField] float knockBackForceMultiplier = 4f;
 
     // Default values 
 
@@ -148,7 +149,7 @@ public class ControlCyberSword : MonoBehaviour
                 if (colliders[i].GetComponent<Monsters>() != null)
                 {
                     Vector2 direction = (colliders[i].gameObject.transform.position - playerMove.gameObject.transform.position).normalized;
-                    Vector2 knockBack = direction * knockBackForce;
+                    Vector2 knockBack = direction * (knockBackForce * knockBackForceMultiplier);
 
                     damageableObj.TakeDamage(hitDamage, knockBack);
                 }
