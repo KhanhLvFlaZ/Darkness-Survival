@@ -21,7 +21,7 @@ public class Monsters : MonoBehaviour, IDamageable
     [SerializeField] float minHp = 4f;
     float hp;
 
-    [SerializeField] float damage = 12f;
+    [SerializeField] float damage = 8f;
     [SerializeField] float speed = 2.5f * 0.25f;
     [SerializeField] int soulsReward = 30;
 
