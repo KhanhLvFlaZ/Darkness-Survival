@@ -180,7 +180,7 @@ MonoBehaviour:
   maxHp: 42
   minHp: 34
   damage: 16
-  speed: 1.1
+  speed: 0.6
   soulsReward: 700
   spiritColor: {r: 0.6603774, g: 0.41242433, b: 0.49905854, a: 0.59607846}
   colorChangeTime: 1
@@ -189,6 +189,14 @@ MonoBehaviour:
   objectsDetection: {fileID: 700547917882898101}
   attackReloadTime: 1
   knockBackTime: 0.1
+  hpBar: {fileID: 0}
+  hpBarPrefab: {fileID: 7034181815126509105, guid: 164a032978b95a34b84061b21dde488c, type: 3}
+  hpBarOffset: {x: 0, y: 0, z: 0}
+  autoConfigureHpBar: 1
+  hpBarVerticalPadding: 0.2
+  hpBarWidthMultiplier: 1
+  hpBarMinWidth: 0.75
+  hpBarHeightMultiplier: 0.5
 --- !u!114 &9020750673265167427
 MonoBehaviour:
   m_ObjectHideFlags: 0

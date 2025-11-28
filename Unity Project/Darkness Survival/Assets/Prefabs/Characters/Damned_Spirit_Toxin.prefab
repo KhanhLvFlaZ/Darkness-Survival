@@ -396,7 +396,7 @@ MonoBehaviour:
   maxHp: 42
   minHp: 34
   damage: 16
-  speed: 1.1
+  speed: 0.6
   soulsReward: 700
   spiritColor: {r: 0.6603774, g: 0.41242433, b: 0.49905854, a: 0.59607846}
   colorChangeTime: 1

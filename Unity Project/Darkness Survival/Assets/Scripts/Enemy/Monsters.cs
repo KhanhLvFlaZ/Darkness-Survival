@@ -69,6 +69,7 @@ public class Monsters : MonoBehaviour, IDamageable
     [SerializeField] float hpBarVerticalPadding = 0.2f;
     [SerializeField] float hpBarWidthMultiplier = 1f;
     [SerializeField] float hpBarMinWidth = 0.75f;
+    [SerializeField] float hpBarHeightMultiplier = 0.4f;
     bool hasHpBar = false;
     Vector3 offset;
 
@@ -202,7 +203,8 @@ public class Monsters : MonoBehaviour, IDamageable
         hpBarTransform.position = transform.position + offset;
 
         float desiredWidth = Mathf.Max(calculatedWidth * hpBarWidthMultiplier, hpBarMinWidth);
-        hpBarTransform.localScale = new Vector3(desiredWidth, hpBarTransform.localScale.y, hpBarTransform.localScale.z);
+        float desiredHeight = Mathf.Max(hpBarTransform.localScale.y * hpBarHeightMultiplier, 0.01f);
+        hpBarTransform.localScale = new Vector3(desiredWidth, desiredHeight, hpBarTransform.localScale.z);
     }
 
     // - Updates 
