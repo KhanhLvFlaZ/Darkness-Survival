@@ -9,7 +9,8 @@ public class Level : MonoBehaviour
     int level = 1;
     int experience = 0;
     [SerializeField] int baseExperienceToLevel = 1500;
-    [SerializeField, Range(1f, 3f)] float experienceGrowthFactor = 5f;
+    [SerializeField, Min(1f)] float experienceGrowthFactor = 2f;
+    [SerializeField, Range(0f, 2f)] float highLevelSlowdownFactor = 0.35f;
     [SerializeField] ExperienceBar experienceBar;
     [SerializeField] UpgradePanelManager upgradePanel;
 
@@ -49,8 +50,10 @@ public class Level : MonoBehaviour
     {
         get
         {
-            float growth = Mathf.Pow(Mathf.Max(experienceGrowthFactor, 1f), level - 1);
-            return Mathf.RoundToInt(baseExperienceToLevel * growth);
+            int levelIndex = Mathf.Max(level - 1, 0);
+            float exponentialGrowth = Mathf.Pow(Mathf.Max(experienceGrowthFactor, 1f), levelIndex);
+            float slowdownMultiplier = 1f + highLevelSlowdownFactor * levelIndex * levelIndex;
+            return Mathf.RoundToInt(baseExperienceToLevel * exponentialGrowth * slowdownMultiplier);
         }
     }
 
