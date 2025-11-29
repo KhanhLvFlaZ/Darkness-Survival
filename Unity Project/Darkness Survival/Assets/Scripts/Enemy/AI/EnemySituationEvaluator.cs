@@ -47,9 +47,25 @@ public class EnemySituationEvaluator : MonoBehaviour
         public TargetInfo[] nearbyTargets;
     }
 
+    [Serializable]
+    public struct SituationTensor
+    {
+        public SituationTensor(float[] values, int targetSlotCount)
+        {
+            this.values = values;
+            this.targetSlotCount = targetSlotCount;
+        }
+
+        public float[] values;
+        public int targetSlotCount;
+        public int Length => values?.Length ?? 0;
+    }
+
     [SerializeField] float evaluationInterval = 0.1f;
     [SerializeField] TargetDetectionSettings targetDetection;
     [SerializeField] MonoBehaviour[] extraSensors;
+
+    const int BaseFeatureCount = 20;
 
     readonly List<IEnemySituationSensor> sensorProviders = new List<IEnemySituationSensor>();
 
@@ -60,10 +76,13 @@ public class EnemySituationEvaluator : MonoBehaviour
     Character playerCharacter;
     Collider2D[] targetBuffer = Array.Empty<Collider2D>();
     float evaluationTimer;
+    int targetSlotCount;
 
     public SituationSnapshot LatestSnapshot { get; private set; }
+    public SituationTensor LatestTensor { get; private set; }
 
     public event Action<SituationSnapshot> SnapshotUpdated;
+    public event Action<SituationTensor> TensorUpdated;
 
     private void Awake()
     {
@@ -90,6 +109,8 @@ public class EnemySituationEvaluator : MonoBehaviour
     {
         LatestSnapshot = BuildSnapshot();
         SnapshotUpdated?.Invoke(LatestSnapshot);
+        LatestTensor = BuildTensor(LatestSnapshot);
+        TensorUpdated?.Invoke(LatestTensor);
         return LatestSnapshot;
     }
 
@@ -167,6 +188,53 @@ public class EnemySituationEvaluator : MonoBehaviour
         }
 
         return snapshot;
+    }
+
+    SituationTensor BuildTensor(SituationSnapshot snapshot)
+    {
+        int totalFeatureCount = BaseFeatureCount + targetSlotCount * 3;
+        float[] features = new float[totalFeatureCount];
+        int index = 0;
+
+        features[index++] = (float)snapshot.timestamp;
+        features[index++] = snapshot.enemyPosition.x;
+        features[index++] = snapshot.enemyPosition.y;
+        features[index++] = snapshot.enemyVelocity.x;
+        features[index++] = snapshot.enemyVelocity.y;
+        features[index++] = snapshot.enemyHp;
+        features[index++] = snapshot.enemyMaxHp;
+        features[index++] = snapshot.enemyHpRatio;
+        features[index++] = snapshot.baseSpeed;
+        features[index++] = snapshot.currentSpeed;
+        features[index++] = snapshot.isSpirit ? 1f : 0f;
+        features[index++] = snapshot.isKnockedBack ? 1f : 0f;
+        features[index++] = snapshot.attackCooldownRemaining;
+        features[index++] = snapshot.isObstructed ? 1f : 0f;
+        features[index++] = snapshot.playerPosition.x;
+        features[index++] = snapshot.playerPosition.y;
+        features[index++] = snapshot.playerHp;
+        features[index++] = snapshot.playerMaxHp;
+        features[index++] = snapshot.playerHpRatio;
+        features[index++] = snapshot.distanceToPlayer;
+
+        TargetInfo[] targets = snapshot.nearbyTargets ?? Array.Empty<TargetInfo>();
+        for (int i = 0; i < targetSlotCount; ++i)
+        {
+            if (i < targets.Length)
+            {
+                features[index++] = targets[i].position.x;
+                features[index++] = targets[i].position.y;
+                features[index++] = targets[i].distance;
+            }
+            else
+            {
+                features[index++] = 0f;
+                features[index++] = 0f;
+                features[index++] = 0f;
+            }
+        }
+
+        return new SituationTensor(features, targetSlotCount);
     }
 
     TargetInfo[] CaptureNearbyTargets(Vector2 origin)
@@ -254,9 +322,11 @@ public class EnemySituationEvaluator : MonoBehaviour
 
     void AllocateTargetBuffer()
     {
-        if (targetDetection.maxTargets > 0)
+        targetSlotCount = Mathf.Max(targetDetection.maxTargets, 0);
+
+        if (targetSlotCount > 0)
         {
-            targetBuffer = new Collider2D[targetDetection.maxTargets];
+            targetBuffer = new Collider2D[targetSlotCount];
         }
     }
 }
