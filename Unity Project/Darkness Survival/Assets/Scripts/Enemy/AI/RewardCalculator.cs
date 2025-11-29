@@ -162,6 +162,7 @@ public class RewardCalculator : MonoBehaviour
         }
 
         brain?.GiveReward(clamped);
+        owner?.LogReward(clamped);
     }
 
     void CloseEpisode(bool survived)

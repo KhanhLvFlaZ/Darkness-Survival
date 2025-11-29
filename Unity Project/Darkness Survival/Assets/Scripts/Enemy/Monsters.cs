@@ -378,7 +378,15 @@ public class Monsters : MonoBehaviour, IDamageable
     {
         if (collision.gameObject == targetGameobject)
         {
-            Attack();
+            bool shouldAttack = brainInstance == null || pendingAttackRequest;
+            if (shouldAttack)
+            {
+                Attack();
+                if (brainInstance != null)
+                {
+                    pendingAttackRequest = false;
+                }
+            }
         }
     }
 
@@ -478,5 +486,86 @@ public class Monsters : MonoBehaviour, IDamageable
     {
         latestState = state;
         hasLatestState = true;
+        hasLatestObservation = false;
+    }
+
+    void UpdateBrain()
+    {
+        if (brainInstance == null || !hasLatestState)
+        {
+            return;
+        }
+
+        EnemyAction action = brainInstance.Decide(latestState, workingMemory);
+        latestAction = action;
+        hasLatestAction = true;
+
+        Vector2 fallbackDirection = Vector2.zero;
+        if (targetDestination != null)
+        {
+            Vector3 delta = targetDestination.position - transform.position;
+            if (delta.sqrMagnitude > 0.0001f)
+            {
+                fallbackDirection = delta.normalized;
+            }
+        }
+
+        Vector2 desiredDirection = action.moveDirection.sqrMagnitude > 0.0001f
+            ? action.moveDirection.normalized
+            : fallbackDirection;
+
+        if (fallbackDirection == Vector2.zero)
+        {
+            brainDesiredDirection = desiredDirection.sqrMagnitude > 0.0001f ? desiredDirection : Vector2.right;
+        }
+        else if (desiredDirection.sqrMagnitude < 0.0001f)
+        {
+            brainDesiredDirection = fallbackDirection;
+        }
+        else
+        {
+            brainDesiredDirection = Vector2.Lerp(fallbackDirection, desiredDirection, brainSteerWeight).normalized;
+        }
+
+        if (action.requestSpiritMode != isSpirit)
+        {
+            SpiritSettings(action.requestSpiritMode);
+        }
+
+        pendingAttackRequest = action.attemptAttack;
+
+        RecordObservation(0f);
+    }
+
+    void RecordObservation(float rewardDelta)
+    {
+        if (workingMemory == null || !hasLatestState)
+        {
+            return;
+        }
+
+        if (!hasLatestAction)
+        {
+            latestAction = EnemyAction.Idle;
+            hasLatestAction = true;
+        }
+
+        if (Mathf.Approximately(rewardDelta, 0f) && hasLatestObservation)
+        {
+            return;
+        }
+
+        workingMemory.PushObservation(latestState, latestAction, rewardDelta);
+        hasLatestObservation = true;
+    }
+
+    public void LogReward(float rewardDelta)
+    {
+        if (Mathf.Approximately(rewardDelta, 0f))
+        {
+            return;
+        }
+
+        RecordObservation(rewardDelta);
     }
 }
