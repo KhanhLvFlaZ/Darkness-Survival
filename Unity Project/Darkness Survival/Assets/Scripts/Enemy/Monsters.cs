@@ -94,13 +94,17 @@ public class Monsters : MonoBehaviour, IDamageable
     Vector2 brainDesiredDirection;
     bool pendingAttackRequest;
     bool episodeFinalized;
-    SituationState latestState;
-    EnemyAction latestAction = EnemyAction.Idle;
-    bool hasLatestState;
 
     //////////////
 
     float timer;
+
+    // Brain scheduling
+    SituationState latestState;
+    EnemyAction latestAction = EnemyAction.Idle;
+    bool hasLatestState;
+    bool hasLatestAction;
+    bool hasLatestObservation;
 
     //private Vector2[] path;
     //private int targetIndex;
@@ -173,6 +177,8 @@ public class Monsters : MonoBehaviour, IDamageable
         if (situationEvaluator != null)
         {
             situationEvaluator.StateUpdated += HandleStateUpdated;
+            latestState = situationEvaluator.GetCurrentState(forceEvaluate: true);
+            hasLatestState = true;
         }
     }
 
@@ -276,6 +282,8 @@ public class Monsters : MonoBehaviour, IDamageable
             hpBar.transform.position = new Vector3(transform.position.x + offset.x, transform.position.y + offset.y, transform.position.z);
         }
 
+        UpdateBrain();
+
 
         if (timer > 0f)
         {
@@ -345,7 +353,14 @@ public class Monsters : MonoBehaviour, IDamageable
 
         if (!isKnockedBack)
         {
-            rigidbody2d.velocity = direction * currentSpeed;
+            if (brainInstance != null)
+            {
+                rigidbody2d.velocity = brainDesiredDirection * currentSpeed;
+            }
+            else
+            {
+                rigidbody2d.velocity = direction * currentSpeed;
+            }
         }
         else
         {

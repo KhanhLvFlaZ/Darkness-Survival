@@ -22,6 +22,7 @@ public class EnemyWorkingMemory : MonoBehaviour
     public event Action<MemoryEntry> EntryRecorded;
 
     public IReadOnlyCollection<MemoryEntry> Entries => entries;
+    public int Count => entries.Count;
 
     public void PushObservation(in SituationState state, in EnemyAction action, float reward)
     {
@@ -73,6 +74,16 @@ public class EnemyWorkingMemory : MonoBehaviour
     public void Clear()
     {
         entries.Clear();
+    }
+
+    public float SumRewards()
+    {
+        float total = 0f;
+        foreach (MemoryEntry entry in entries)
+        {
+            total += entry.reward;
+        }
+        return total;
     }
 
     void TrimToCapacity()
