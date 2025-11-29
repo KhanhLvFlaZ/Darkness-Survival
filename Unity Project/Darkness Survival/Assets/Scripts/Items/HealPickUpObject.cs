@@ -5,9 +5,10 @@ using UnityEngine;
 public class HealPickUpObject : MonoBehaviour, IPickUpObject
 {
     [SerializeField] float healAmount;
+    [SerializeField] float healMultiplier = 2f;
 
     public void OnPickUp(Character character)
     {
-        character.Heal(healAmount);
+        character.Heal(healAmount * healMultiplier);
     }
 }

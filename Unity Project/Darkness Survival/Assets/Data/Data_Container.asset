@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 96f64b1fc571eb54f89bee55daf21dcb, type: 3}
   m_Name: Data_Container
   m_EditorClassIdentifier: 
-  energyAcquired: 1
+  energyAcquired: 14
   stageCompletion: 
