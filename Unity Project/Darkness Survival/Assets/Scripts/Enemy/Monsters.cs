@@ -146,10 +146,12 @@ public class Monsters : MonoBehaviour, IDamageable
         get { return Mathf.Max(timer, 0f); }
     }
 
-    public ObjectsDetection OBJECTS_DETECTION
-    {
-        get { return objectsDetection; }
-    }
+    public ObjectsDetection OBJECTS_DETECTION => objectsDetection;
+    public IEnemyBrain BRAIN_INSTANCE => brainInstance;
+    public EnemyWorkingMemory WORKING_MEMORY => workingMemory;
+    public bool HAS_LATEST_STATE => hasLatestState;
+    public SituationState LATEST_STATE => latestState;
+    public EnemyAction LATEST_ACTION => latestAction;
 
     // - Awake 
 
@@ -159,6 +161,27 @@ public class Monsters : MonoBehaviour, IDamageable
         defaultColor = GetComponent<SpriteRenderer>().color;
         colorChange = GetComponent<ColorChange>();
         simpleFlash = GetComponent<SimpleFlash>();
+        situationEvaluator = GetComponent<EnemySituationEvaluator>();
+        workingMemory = GetComponent<EnemyWorkingMemory>();
+        rewardCalculator = GetComponent<RewardCalculator>();
+
+        if (brainBehaviour is IEnemyBrain runtimeBrain)
+        {
+            brainInstance = runtimeBrain;
+        }
+
+        if (situationEvaluator != null)
+        {
+            situationEvaluator.StateUpdated += HandleStateUpdated;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (situationEvaluator != null)
+        {
+            situationEvaluator.StateUpdated -= HandleStateUpdated;
+        }
     }
 
     // - Start
@@ -359,6 +382,7 @@ public class Monsters : MonoBehaviour, IDamageable
         }
 
         targetCharacter.TakeDamage(currentDamage);
+        OnDamageDealt?.Invoke(currentDamage);
         timer = attackReloadTime;
     }
 
@@ -378,6 +402,7 @@ public class Monsters : MonoBehaviour, IDamageable
     {
         hp -= damage;
         if (hasHpBar && hpBar != null) hpBar.SetState(hp, maxHp);
+        OnDamageTaken?.Invoke(damage);
 
         // Damage message
 
@@ -397,6 +422,11 @@ public class Monsters : MonoBehaviour, IDamageable
         {
             targetGameobject.GetComponent<Level>().AddExperience(soulsReward);
             GetComponent<DropOnDestroy>().CheckDrop();
+            if (!episodeFinalized)
+            {
+                episodeFinalized = true;
+                OnEnemyDeath?.Invoke();
+            }
 
             if(hasHpBar && hpBar != null) Destroy(hpBar.gameObject);
             Destroy(gameObject);
@@ -426,5 +456,12 @@ public class Monsters : MonoBehaviour, IDamageable
             currentDamage = damage;
             activeCoroutine = StartCoroutine(colorChange.ChangeColor(defaultColor, colorChangeTime));
         }
+        OnSpiritModeChanged?.Invoke(isSpirit);
+    }
+
+    void HandleStateUpdated(SituationState state)
+    {
+        latestState = state;
+        hasLatestState = true;
     }
 }
