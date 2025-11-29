@@ -176,18 +176,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cdcbfebfda4a56e49af93a265364c795, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHp: 53
-  minHp: 41
-  damage: 13
-  speed: 0.3
-  soulsReward: 700
-  spiritColor: {r: 0.6603774, g: 0.41242433, b: 0.49905854, a: 0.59607846}
+  maxHp: 80
+  minHp: 60
+  damage: 18
+  speed: 0.5
+  maxSpeedRatioToPlayer: 0.85
+  soulsReward: 300
+  spiritColor: {r: 0.509434, g: 0.26250213, b: 0.16914849, a: 1}
   colorChangeTime: 1
   slowDownSpeed: 0.3
   sideSwapDelay: 0.2
-  objectsDetection: {fileID: 5034482718835653014}
+  objectsDetection: {fileID: 0}
   attackReloadTime: 1
   knockBackTime: 0.1
+  hpBar: {fileID: 0}
+  hpBarPrefab: {fileID: 7034181815126509105, guid: 164a032978b95a34b84061b21dde488c, type: 3}
+  hpBarOffset: {x: 0, y: 0.4, z: 0}
+  autoConfigureHpBar: 1
+  hpBarVerticalPadding: 0.2
+  hpBarWidthMultiplier: 1
+  hpBarMinWidth: 0.75
+  hpBarHeightMultiplier: 0.4
 --- !u!114 &3555291963459634016
 MonoBehaviour:
   m_ObjectHideFlags: 0

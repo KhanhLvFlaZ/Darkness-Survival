@@ -1,8 +1,9 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-[RequireComponent(typeof(Rigidbody2D))]
+[RequireComponent(typeof(Rigidbody2D), typeof(EnemySituationEvaluator), typeof(EnemyWorkingMemory))]
 public class Monsters : MonoBehaviour, IDamageable
 {
     ///////////////////////
@@ -71,8 +72,31 @@ public class Monsters : MonoBehaviour, IDamageable
     [SerializeField] float hpBarWidthMultiplier = 1f;
     [SerializeField] float hpBarMinWidth = 0.75f;
     [SerializeField] float hpBarHeightMultiplier = 0.4f;
+    [SerializeField] bool useSpriteTopForHpBar = false;
+    [SerializeField] float hpBarStandardVerticalAdjustment = -0.3f;
     bool hasHpBar = false;
     Vector3 offset;
+
+    [Header("AI")]
+    [SerializeField] MonoBehaviour brainBehaviour;
+    [SerializeField, Range(0f, 1f)] float brainSteerWeight = 0.5f;
+    [SerializeField] float brainAttackRange = 1.35f;
+
+    public event Action<float> OnDamageDealt;
+    public event Action<float> OnDamageTaken;
+    public event Action<bool> OnSpiritModeChanged;
+    public event Action OnEnemyDeath;
+
+    EnemySituationEvaluator situationEvaluator;
+    EnemyWorkingMemory workingMemory;
+    RewardCalculator rewardCalculator;
+    IEnemyBrain brainInstance;
+    Vector2 brainDesiredDirection;
+    bool pendingAttackRequest;
+    bool episodeFinalized;
+    SituationState latestState;
+    EnemyAction latestAction = EnemyAction.Idle;
+    bool hasLatestState;
 
     //////////////
 
@@ -203,10 +227,13 @@ public class Monsters : MonoBehaviour, IDamageable
         }
 
         Bounds spriteBounds = spriteRenderer.bounds;
-        float calculatedHeight = spriteBounds.size.y * 0.5f;
+        float verticalReference = useSpriteTopForHpBar
+            ? spriteBounds.max.y - transform.position.y
+            : spriteBounds.size.y * 0.5f;
+        float verticalPadding = hpBarVerticalPadding + (useSpriteTopForHpBar ? 0f : hpBarStandardVerticalAdjustment);
         float calculatedWidth = Mathf.Max(spriteBounds.size.x, hpBarMinWidth);
 
-        Vector3 autoOffset = new Vector3(0f, calculatedHeight + hpBarVerticalPadding, 0f);
+        Vector3 autoOffset = new Vector3(0f, verticalReference + verticalPadding, 0f);
         offset = autoOffset + hpBarOffset;
 
         Transform hpBarTransform = hpBar.transform;

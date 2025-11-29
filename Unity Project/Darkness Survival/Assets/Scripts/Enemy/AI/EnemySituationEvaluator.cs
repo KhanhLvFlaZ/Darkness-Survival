@@ -80,9 +80,11 @@ public class EnemySituationEvaluator : MonoBehaviour
 
     public SituationSnapshot LatestSnapshot { get; private set; }
     public SituationTensor LatestTensor { get; private set; }
+    public SituationState LatestState { get; private set; }
 
     public event Action<SituationSnapshot> SnapshotUpdated;
     public event Action<SituationTensor> TensorUpdated;
+    public event Action<SituationState> StateUpdated;
 
     private void Awake()
     {
@@ -108,10 +110,22 @@ public class EnemySituationEvaluator : MonoBehaviour
     public SituationSnapshot EvaluateNow()
     {
         LatestSnapshot = BuildSnapshot();
+        LatestState = BuildState(LatestSnapshot);
         SnapshotUpdated?.Invoke(LatestSnapshot);
+        StateUpdated?.Invoke(LatestState);
         LatestTensor = BuildTensor(LatestSnapshot);
         TensorUpdated?.Invoke(LatestTensor);
         return LatestSnapshot;
+    }
+
+    public SituationState GetCurrentState(bool forceEvaluate = false)
+    {
+        if (forceEvaluate || LatestSnapshot.timestamp <= 0d)
+        {
+            EvaluateNow();
+        }
+
+        return LatestState;
     }
 
     public void RegisterSensor(IEnemySituationSensor sensor)
@@ -188,6 +202,38 @@ public class EnemySituationEvaluator : MonoBehaviour
         }
 
         return snapshot;
+    }
+
+    public SituationState BuildState(SituationSnapshot snapshot)
+    {
+        SituationState state = new SituationState
+        {
+            timestamp = snapshot.timestamp,
+            enemyPosition = snapshot.enemyPosition,
+            enemyVelocity = snapshot.enemyVelocity,
+            playerPosition = snapshot.playerPosition,
+            enemyHpRatio = snapshot.enemyHpRatio,
+            playerHpRatio = snapshot.playerHpRatio,
+            distanceToPlayer = snapshot.distanceToPlayer,
+            attackCooldownRemaining = snapshot.attackCooldownRemaining,
+            isSpirit = snapshot.isSpirit,
+            isObstructed = snapshot.isObstructed,
+            nearbyTargetCount = snapshot.nearbyTargets?.Length ?? 0
+        };
+
+        float distanceFactor = targetDetection.radius > 0f
+            ? Mathf.Clamp01(1f - snapshot.distanceToPlayer / targetDetection.radius)
+            : Mathf.Clamp01(1f - snapshot.distanceToPlayer * 0.2f);
+
+        state.attackOpportunity = Mathf.Clamp01(distanceFactor * (1f - Mathf.Clamp01(snapshot.attackCooldownRemaining)));
+        state.retreatUrgency = Mathf.Clamp01((1f - snapshot.enemyHpRatio) + (snapshot.isObstructed ? 0.25f : 0f));
+
+        float targetDensity = targetSlotCount > 0
+            ? Mathf.Clamp01((snapshot.nearbyTargets?.Length ?? 0) / (float)targetSlotCount)
+            : 0f;
+        state.exploreValue = Mathf.Clamp01(targetDensity * 0.6f + snapshot.playerHpRatio * 0.4f);
+
+        return state;
     }
 
     SituationTensor BuildTensor(SituationSnapshot snapshot)

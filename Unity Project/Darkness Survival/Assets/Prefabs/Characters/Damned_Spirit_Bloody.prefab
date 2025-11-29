@@ -197,6 +197,7 @@ MonoBehaviour:
   hpBarWidthMultiplier: 1
   hpBarMinWidth: 0.75
   hpBarHeightMultiplier: 0.5
+  useSpriteTopForHpBar: 1
 --- !u!114 &9020750673265167427
 MonoBehaviour:
   m_ObjectHideFlags: 0
