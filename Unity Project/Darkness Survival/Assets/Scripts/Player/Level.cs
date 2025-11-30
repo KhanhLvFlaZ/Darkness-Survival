@@ -8,9 +8,9 @@ public class Level : MonoBehaviour
 
     int level = 1;
     int experience = 0;
-    [SerializeField] int baseExperienceToLevel = 1500;
-    [SerializeField, Min(1f)] float experienceGrowthFactor = 2f;
-    [SerializeField, Range(0f, 2f)] float highLevelSlowdownFactor = 0.35f;
+    [SerializeField] int baseExperienceToLevel = 900;
+    [SerializeField, Min(1f)] float experienceGrowthFactor = 1.6f;
+    [SerializeField, Range(0f, 2f)] float highLevelSlowdownFactor = 0.25f;
     [SerializeField] ExperienceBar experienceBar;
     [SerializeField] UpgradePanelManager upgradePanel;
 

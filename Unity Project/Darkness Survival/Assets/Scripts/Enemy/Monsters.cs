@@ -82,6 +82,13 @@ public class Monsters : MonoBehaviour, IDamageable
     [SerializeField, Range(0f, 1f)] float brainSteerWeight = 0.5f;
     [SerializeField] float brainAttackRange = 1.35f;
 
+    [Header("Ranged Combat")]
+    [SerializeField] bool enableRangedAttack = false;
+    [SerializeField] float rangedAttackRange = 6f;
+    [SerializeField] Transform projectileSpawnPoint;
+    [SerializeField] GameObject projectilePrefab;
+    [SerializeField] float projectileSpawnForwardOffset = 0.65f;
+
     public event Action<float> OnDamageDealt;
     public event Action<float> OnDamageTaken;
     public event Action<bool> OnSpiritModeChanged;
@@ -177,8 +184,6 @@ public class Monsters : MonoBehaviour, IDamageable
         if (situationEvaluator != null)
         {
             situationEvaluator.StateUpdated += HandleStateUpdated;
-            latestState = situationEvaluator.GetCurrentState(forceEvaluate: true);
-            hasLatestState = true;
         }
     }
 
@@ -199,7 +204,7 @@ public class Monsters : MonoBehaviour, IDamageable
         isSpirit = false;
         currentDamage = damage;
         currentSpeed = speed;
-        hp = Random.Range(minHp, maxHp);
+        hp = UnityEngine.Random.Range(minHp, maxHp);
         maxHp = hp;
 
         if(hpBar == null && hpBarPrefab != null)
@@ -218,6 +223,12 @@ public class Monsters : MonoBehaviour, IDamageable
             hpBar.SetState(hp, maxHp);
             hasHpBar = true;
             ConfigureHpBar();
+        }
+
+        if (situationEvaluator != null)
+        {
+            latestState = situationEvaluator.GetCurrentState(forceEvaluate: true);
+            hasLatestState = true;
         }
     }
 
@@ -283,6 +294,7 @@ public class Monsters : MonoBehaviour, IDamageable
         }
 
         UpdateBrain();
+        TryRangedAttack();
 
 
         if (timer > 0f)
@@ -376,6 +388,11 @@ public class Monsters : MonoBehaviour, IDamageable
 
     private void OnCollisionStay2D(Collision2D collision)
     {
+        if (enableRangedAttack)
+        {
+            return;
+        }
+
         if (collision.gameObject == targetGameobject)
         {
             bool shouldAttack = brainInstance == null || pendingAttackRequest;
@@ -399,13 +416,25 @@ public class Monsters : MonoBehaviour, IDamageable
             return;
         }
 
+        if (enableRangedAttack)
+        {
+            if (FireProjectile())
+            {
+                timer = attackReloadTime;
+            }
+            return;
+        }
+
         if (targetCharacter == null)
         {
             targetCharacter = targetGameobject.GetComponent<Character>();
         }
 
-        targetCharacter.TakeDamage(currentDamage);
-        OnDamageDealt?.Invoke(currentDamage);
+        if (targetCharacter != null)
+        {
+            targetCharacter.TakeDamage(currentDamage);
+            OnDamageDealt?.Invoke(currentDamage);
+        }
         timer = attackReloadTime;
     }
 
@@ -567,5 +596,52 @@ public class Monsters : MonoBehaviour, IDamageable
         }
 
         RecordObservation(rewardDelta);
+    }
+
+    void TryRangedAttack()
+    {
+        if (!enableRangedAttack || targetDestination == null)
+        {
+            return;
+        }
+
+        if (timer > 0f)
+        {
+            return;
+        }
+
+        float sqrDistance = (targetDestination.position - transform.position).sqrMagnitude;
+        if (sqrDistance <= rangedAttackRange * rangedAttackRange)
+        {
+            Attack();
+        }
+    }
+
+    bool FireProjectile()
+    {
+        if (projectilePrefab == null || targetDestination == null)
+        {
+            return false;
+        }
+
+        Transform spawn = projectileSpawnPoint != null ? projectileSpawnPoint : transform;
+        Vector3 direction = (targetDestination.position - spawn.position);
+        if (direction.sqrMagnitude < 0.001f)
+        {
+            direction = transform.right;
+        }
+        direction.Normalize();
+
+        Vector3 spawnPosition = spawn.position + direction * projectileSpawnForwardOffset;
+
+        GameObject projectileInstance = Instantiate(projectilePrefab, spawnPosition, Quaternion.identity);
+        DemonicSpikeProjectile spike = projectileInstance.GetComponent<DemonicSpikeProjectile>();
+        if (spike != null)
+        {
+            spike.Initialize(transform);
+            spike.SetDamage(currentDamage);
+            spike.SetDirection(direction.x, direction.y);
+        }
+        return true;
     }
 }

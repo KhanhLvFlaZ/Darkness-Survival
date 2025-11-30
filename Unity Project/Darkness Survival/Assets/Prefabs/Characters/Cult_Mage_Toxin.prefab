@@ -18,6 +18,8 @@ GameObject:
   - component: {fileID: 7820783414376049026}
   - component: {fileID: 7756182022603373397}
   - component: {fileID: 8337289279476331373}
+  - component: {fileID: 1212900665673492195}
+  - component: {fileID: 1354660416341576604}
   m_Layer: 7
   m_Name: Cult_Mage_Toxin
   m_TagString: Untagged
@@ -41,6 +43,7 @@ Transform:
   - {fileID: 1279707094830100068}
   - {fileID: 9052582667593133613}
   - {fileID: 333301710459823020}
+  - {fileID: 3842501234567890124}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -178,7 +181,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHp: 80
   minHp: 60
-  damage: 18
+  damage: 14
   speed: 0.5
   maxSpeedRatioToPlayer: 0.85
   soulsReward: 300
@@ -187,7 +190,7 @@ MonoBehaviour:
   slowDownSpeed: 0.3
   sideSwapDelay: 0.2
   objectsDetection: {fileID: 0}
-  attackReloadTime: 1
+  attackReloadTime: 1.8
   knockBackTime: 0.1
   hpBar: {fileID: 0}
   hpBarPrefab: {fileID: 7034181815126509105, guid: 164a032978b95a34b84061b21dde488c, type: 3}
@@ -197,6 +200,15 @@ MonoBehaviour:
   hpBarWidthMultiplier: 1
   hpBarMinWidth: 0.75
   hpBarHeightMultiplier: 0.4
+  enableRangedAttack: 1
+  rangedAttackRange: 8
+  projectileSpawnPoint: {fileID: 3842501234567890124}
+  projectilePrefab: {fileID: 7398175097110399312, guid: 0269a4ec687654c4b99a6fb4b974d53e, type: 3}
+  useSpriteTopForHpBar: 1
+  hpBarStandardVerticalAdjustment: -0.3
+  brainBehaviour: {fileID: 0}
+  brainSteerWeight: 0.5
+  brainAttackRange: 1.35
 --- !u!114 &3555291963459634016
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -252,6 +264,40 @@ MonoBehaviour:
   flashMaterial: {fileID: 2100000, guid: 81a53b63d9d1dd347be33daabc261cfe, type: 2}
   duration: 0.15
   color: {r: 1, g: 1, b: 1, a: 1}
+--- !u!114 &1212900665673492195
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5549453769974419956}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb19b7f0e0c92f348b89d797f8b7ad47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  evaluationInterval: 0.1
+  targetDetection:
+    enabled: 0
+    radius: 0
+    layerMask:
+      serializedVersion: 2
+      m_Bits: 0
+    maxTargets: 0
+  extraSensors: []
+--- !u!114 &1354660416341576604
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5549453769974419956}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d0e719c96b8b9b439d1613b40ccf578, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  capacity: 32
 --- !u!1 &5681473788906493378
 GameObject:
   m_ObjectHideFlags: 0
@@ -334,6 +380,37 @@ MonoBehaviour:
   - {x: 0.5, y: -0.5, z: 0}
   - {x: 0.5, y: 0.5, z: 0}
   - {x: -0.5, y: 0.5, z: 0}
+--- !u!1 &3842501234567890123
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3842501234567890124}
+  m_Layer: 7
+  m_Name: ProjectileSpawnPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3842501234567890124
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3842501234567890123}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.65, y: 4.5, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5549453769974419955}
+  m_RootOrder: 4
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5948450490457409454
 GameObject:
   m_ObjectHideFlags: 0

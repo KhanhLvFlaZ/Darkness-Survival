@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Character : MonoBehaviour
+public class Character : MonoBehaviour, IDamageable
 {
     [Header("Stats")]
     [SerializeField] float maxHp = 250f;
@@ -113,6 +113,11 @@ public class Character : MonoBehaviour
             offControl = true;
         }
         hpBar.SetState(currentHp, maxHp);
+    }
+
+    public void TakeDamage(float damage, Vector2 knockBack)
+    {
+        TakeDamage(damage);
     }
 
     private void ApplyArmor(ref float damage)
