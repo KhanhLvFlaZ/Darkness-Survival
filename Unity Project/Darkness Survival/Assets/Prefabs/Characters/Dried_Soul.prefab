@@ -524,7 +524,6 @@ GameObject:
   - component: {fileID: 646864149021087901}
   - component: {fileID: 3758633450644322219}
   - component: {fileID: 5478220501152542515}
-  - component: {fileID: 2611284856005617125}
   m_Layer: 6
   m_Name: ObjectTrigger
   m_TagString: Untagged

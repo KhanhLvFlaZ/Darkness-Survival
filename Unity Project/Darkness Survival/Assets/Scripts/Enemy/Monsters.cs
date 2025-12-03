@@ -432,7 +432,8 @@ public class Monsters : MonoBehaviour, IDamageable
 
         if (targetCharacter != null)
         {
-            targetCharacter.TakeDamage(currentDamage);
+            float adjustedDamage = currentDamage * GameDifficultySettings.EnemyDamageMultiplier;
+            targetCharacter.TakeDamage(adjustedDamage);
             OnDamageDealt?.Invoke(currentDamage);
         }
         timer = attackReloadTime;

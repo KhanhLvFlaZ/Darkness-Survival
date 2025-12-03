@@ -34,6 +34,8 @@ public class Character : MonoBehaviour, IDamageable
     bool isShortAttack = false;
     bool isHeavyAttack = false;
 
+    float regenCooldownTimer;
+
 
     // Materials 
 
@@ -106,6 +108,7 @@ public class Character : MonoBehaviour, IDamageable
 
         currentHp -= damage;
         isDamaged = true;
+        regenCooldownTimer = GameDifficultySettings.PlayerPassiveRegenDelay;
 
         if (currentHp <= 0)
         {
@@ -176,6 +179,30 @@ public class Character : MonoBehaviour, IDamageable
             }
             isShortAttack = false;
             isHeavyAttack = false;
+        }
+
+        HandlePassiveRegen();
+    }
+
+    void HandlePassiveRegen()
+    {
+        if (offControl || currentHp >= maxHp)
+        {
+            return;
+        }
+
+        if (regenCooldownTimer > 0f)
+        {
+            regenCooldownTimer -= Time.deltaTime;
+            return;
+        }
+
+        float healAmount = GameDifficultySettings.PlayerPassiveRegenPerSecond * Time.deltaTime;
+        currentHp = Mathf.Min(maxHp, currentHp + healAmount);
+        hpBar.SetState(currentHp, maxHp);
+        if (Mathf.Approximately(currentHp, maxHp))
+        {
+            isDamaged = false;
         }
     }
 
