@@ -233,7 +233,197 @@ public class EnemySituationEvaluator : MonoBehaviour
             : 0f;
         state.exploreValue = Mathf.Clamp01(targetDensity * 0.6f + snapshot.playerHpRatio * 0.4f);
 
+        // NEW: Populate player state fields
+        PopulatePlayerState(ref state);
+        
+        // NEW: Populate ally information
+        PopulateAllyInformation(ref state, snapshot.enemyPosition);
+        
+        // NEW: Populate environment data
+        PopulateEnvironmentData(ref state, snapshot.enemyPosition);
+        
+        // NEW: Calculate tactical scores
+        CalculateTacticalScores(ref state);
+
         return state;
+    }
+    
+    void PopulatePlayerState(ref SituationState state)
+    {
+        // Get player velocity
+        if (playerTransform != null)
+        {
+            Rigidbody2D playerBody = playerTransform.GetComponent<Rigidbody2D>();
+            state.playerVelocity = playerBody != null ? playerBody.velocity : Vector2.zero;
+        }
+        else
+        {
+            state.playerVelocity = Vector2.zero;
+        }
+        
+        // Check if player is attacking (using animator if available)
+        state.playerIsAttacking = false;
+        state.playerIsVulnerable = false;
+        if (playerTransform != null)
+        {
+            Animator playerAnimator = playerTransform.GetComponent<Animator>();
+            if (playerAnimator != null)
+            {
+                // Check for attack animation states
+                AnimatorStateInfo stateInfo = playerAnimator.GetCurrentAnimatorStateInfo(0);
+                state.playerIsAttacking = stateInfo.IsName("Attack") || 
+                                         stateInfo.IsName("ShortAttack") || 
+                                         stateInfo.IsName("HeavyAttack");
+                
+                // Player is vulnerable during attack animation (typically mid-animation)
+                state.playerIsVulnerable = state.playerIsAttacking && stateInfo.normalizedTime > 0.3f && stateInfo.normalizedTime < 0.7f;
+            }
+        }
+        
+        // Calculate player buff strength (placeholder - would need actual buff system integration)
+        state.playerBuffStrength = 0f;
+        // TODO: Integrate with actual buff system when available
+    }
+    
+    void PopulateAllyInformation(ref SituationState state, Vector2 enemyPosition)
+    {
+        const int maxAllies = 5;
+        const float allyDetectionRadius = 10f;
+        
+        // Find nearby ally monsters
+        Collider2D[] nearbyColliders = Physics2D.OverlapCircleAll(enemyPosition, allyDetectionRadius);
+        List<Monsters> allies = new List<Monsters>();
+        
+        foreach (Collider2D col in nearbyColliders)
+        {
+            if (col.gameObject == gameObject) continue; // Skip self
+            
+            Monsters monster = col.GetComponent<Monsters>();
+            if (monster != null && monster.gameObject.CompareTag(gameObject.tag))
+            {
+                allies.Add(monster);
+                if (allies.Count >= maxAllies) break;
+            }
+        }
+        
+        state.allyCount = allies.Count;
+        state.allyPositions = new Vector2[maxAllies];
+        state.allyHpRatios = new float[maxAllies];
+        state.allyIsAttacking = new bool[maxAllies];
+        
+        for (int i = 0; i < maxAllies; i++)
+        {
+            if (i < allies.Count)
+            {
+                state.allyPositions[i] = allies[i].transform.position;
+                state.allyHpRatios[i] = allies[i].MAX_HP > 0f ? allies[i].HP / allies[i].MAX_HP : 0f;
+                state.allyIsAttacking[i] = allies[i].ATTACK_COOLDOWN_REMAINING < 0.1f; // Approximate attack state
+            }
+            else
+            {
+                state.allyPositions[i] = Vector2.zero;
+                state.allyHpRatios[i] = 0f;
+                state.allyIsAttacking[i] = false;
+            }
+        }
+    }
+    
+    void PopulateEnvironmentData(ref SituationState state, Vector2 enemyPosition)
+    {
+        const int maxObstacles = 8;
+        const float obstacleDetectionRadius = 8f;
+        
+        // Detect nearby obstacles (using physics layers for walls/obstacles)
+        LayerMask obstacleLayer = LayerMask.GetMask("Obstacle", "Wall", "Default");
+        Collider2D[] nearbyObstacles = Physics2D.OverlapCircleAll(enemyPosition, obstacleDetectionRadius, obstacleLayer);
+        
+        state.obstacleCount = Mathf.Min(nearbyObstacles.Length, maxObstacles);
+        state.nearbyObstaclePositions = new Vector2[maxObstacles];
+        
+        Vector2 nearestCover = Vector2.zero;
+        float nearestCoverDistance = float.MaxValue;
+        
+        for (int i = 0; i < maxObstacles; i++)
+        {
+            if (i < nearbyObstacles.Length)
+            {
+                Vector2 obstaclePos = nearbyObstacles[i].transform.position;
+                state.nearbyObstaclePositions[i] = obstaclePos;
+                
+                // Track nearest cover position
+                float distance = Vector2.Distance(enemyPosition, obstaclePos);
+                if (distance < nearestCoverDistance)
+                {
+                    nearestCoverDistance = distance;
+                    nearestCover = obstaclePos;
+                }
+            }
+            else
+            {
+                state.nearbyObstaclePositions[i] = Vector2.zero;
+            }
+        }
+        
+        state.nearestCoverPosition = nearestCover;
+        
+        // Check line of sight to player
+        state.hasLineOfSight = true;
+        if (playerTransform != null)
+        {
+            Vector2 directionToPlayer = (state.playerPosition - enemyPosition).normalized;
+            float distanceToPlayer = Vector2.Distance(enemyPosition, state.playerPosition);
+            RaycastHit2D hit = Physics2D.Raycast(enemyPosition, directionToPlayer, distanceToPlayer, obstacleLayer);
+            state.hasLineOfSight = hit.collider == null;
+        }
+    }
+    
+    void CalculateTacticalScores(ref SituationState state)
+    {
+        // Calculate flanking opportunity (based on approach angle and player facing)
+        // Higher score when approaching from sides/rear
+        state.flankingOpportunity = 0f;
+        if (playerTransform != null && state.distanceToPlayer > 0.1f)
+        {
+            Vector2 toEnemy = (state.enemyPosition - state.playerPosition).normalized;
+            Vector2 playerFacing = state.playerVelocity.magnitude > 0.1f 
+                ? state.playerVelocity.normalized 
+                : Vector2.down; // Default facing if player is stationary
+            
+            float angle = Vector2.Angle(playerFacing, toEnemy);
+            // Score is higher when angle is closer to 180 (behind player)
+            state.flankingOpportunity = Mathf.Clamp01(angle / 180f);
+        }
+        
+        // Calculate kiting feasibility (based on distance, cooldown, and space to retreat)
+        state.kitingFeasibility = 0f;
+        if (state.distanceToPlayer > 1f && state.distanceToPlayer < 6f)
+        {
+            float cooldownFactor = 1f - Mathf.Clamp01(state.attackCooldownRemaining);
+            float distanceFactor = Mathf.Clamp01((6f - state.distanceToPlayer) / 5f);
+            float spaceFactor = state.isObstructed ? 0.3f : 1f;
+            state.kitingFeasibility = Mathf.Clamp01(cooldownFactor * distanceFactor * spaceFactor);
+        }
+        
+        // Calculate cooperation potential (based on nearby allies and their states)
+        state.cooperationPotential = 0f;
+        if (state.allyCount > 0)
+        {
+            float allyHealthAvg = 0f;
+            int attackingAllies = 0;
+            
+            for (int i = 0; i < state.allyCount; i++)
+            {
+                allyHealthAvg += state.allyHpRatios[i];
+                if (state.allyIsAttacking[i]) attackingAllies++;
+            }
+            
+            allyHealthAvg /= state.allyCount;
+            float allyCountFactor = Mathf.Clamp01(state.allyCount / 3f);
+            float healthFactor = allyHealthAvg;
+            float coordinationFactor = attackingAllies > 0 ? 0.8f : 1f; // Slightly lower if already coordinating
+            
+            state.cooperationPotential = Mathf.Clamp01(allyCountFactor * healthFactor * coordinationFactor);
+        }
     }
 
     SituationTensor BuildTensor(SituationSnapshot snapshot)

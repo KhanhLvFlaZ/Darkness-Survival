@@ -1,6 +1,11 @@
 # Implementation Plan
 
-- [ ] 1. Extend core AI infrastructure with new action types and enhanced observations
+- [x] 1. Extend core AI infrastructure with new action types and enhanced observations
+
+
+
+
+
   - Create enhanced action type enum with tactical behaviors (Kite, Flank, Ambush, SeekCover, HerdPlayer, CoordinatedAttack)
   - Extend SituationState struct with player state fields (isAttacking, isVulnerable, buffStrength, velocity)
   - Add ally information arrays to observation space (positions, HP ratios, attack states)
@@ -12,8 +17,15 @@
   - **Property 1: Valid action selection**
   - **Validates: Requirements 1.1**
 
-- [ ] 2. Implement tactical positioning behaviors
-  - [ ] 2.1 Implement kiting behavior logic
+- [x] 2. Implement tactical positioning behaviors
+
+
+
+
+
+  - [x] 2.1 Implement kiting behavior logic
+
+
     - Calculate attack-then-retreat movement vectors
     - Ensure distance increases beyond counterattack range
     - Integrate with existing attack cooldown system
@@ -23,7 +35,10 @@
     - **Property 2: Kiting distance increase**
     - **Validates: Requirements 1.2**
 
-  - [ ] 2.3 Implement flanking behavior logic
+
+  - [x] 2.3 Implement flanking behavior logic
+
+
     - Calculate approach angles relative to player facing
     - Select paths that approach from sides/rear (>45 degrees)
     - Integrate with pathfinding system
@@ -33,7 +48,10 @@
     - **Property 3: Flanking angle constraint**
     - **Validates: Requirements 1.3**
 
-  - [ ] 2.5 Implement optimal distance maintenance
+
+  - [x] 2.5 Implement optimal distance maintenance
+
+
     - Define optimal distance ranges per monster type
     - Create distance-keeping movement logic
     - Balance approach and retreat based on current distance
@@ -43,7 +61,8 @@
     - **Property 4: Optimal distance maintenance**
     - **Validates: Requirements 1.4**
 
-  - [ ] 2.7 Implement corner-cutting pathfinding
+  - [x] 2.7 Implement corner-cutting pathfinding
+
     - Detect when player moves around obstacles
     - Calculate shortcut paths that intercept player
     - Integrate with existing navigation system
