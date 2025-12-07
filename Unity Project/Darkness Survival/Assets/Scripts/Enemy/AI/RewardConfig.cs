@@ -21,6 +21,11 @@ public class RewardConfig : ScriptableObject
     [SerializeField] float spiritEnterReward = 0.1f;
     [SerializeField] float spiritExitPenalty = -0.05f;
 
+    [Header("Tactical Behaviors")]
+    [SerializeField] float baitSuccessReward = 0.5f;
+    [SerializeField] float coordinatedAttackBonus = 0.3f;
+    [SerializeField] float vulnerableAttackBonus = 0.2f;
+
     [Header("General")]
     [SerializeField] float maxRewardMagnitude = 0.5f;
 
@@ -36,5 +41,8 @@ public class RewardConfig : ScriptableObject
     public float IdealDistanceReward => idealDistanceReward;
     public float SpiritEnterReward => spiritEnterReward;
     public float SpiritExitPenalty => spiritExitPenalty;
+    public float BaitSuccessReward => baitSuccessReward;
+    public float CoordinatedAttackBonus => coordinatedAttackBonus;
+    public float VulnerableAttackBonus => vulnerableAttackBonus;
     public float MaxRewardMagnitude => Mathf.Max(0.01f, maxRewardMagnitude);
 }

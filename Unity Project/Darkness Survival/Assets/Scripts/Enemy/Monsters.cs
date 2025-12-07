@@ -97,6 +97,7 @@ public class Monsters : MonoBehaviour, IDamageable
     EnemySituationEvaluator situationEvaluator;
     EnemyWorkingMemory workingMemory;
     RewardCalculator rewardCalculator;
+    AttackTimingOptimizer attackOptimizer;
     IEnemyBrain brainInstance;
     Vector2 brainDesiredDirection;
     bool pendingAttackRequest;
@@ -175,6 +176,7 @@ public class Monsters : MonoBehaviour, IDamageable
         situationEvaluator = GetComponent<EnemySituationEvaluator>();
         workingMemory = GetComponent<EnemyWorkingMemory>();
         rewardCalculator = GetComponent<RewardCalculator>();
+        attackOptimizer = GetComponent<AttackTimingOptimizer>();
 
         if (brainBehaviour is IEnemyBrain runtimeBrain)
         {
@@ -414,6 +416,18 @@ public class Monsters : MonoBehaviour, IDamageable
         if(timer > 0f)
         {
             return;
+        }
+
+        // Check if attack should be blocked by AttackTimingOptimizer
+        if (attackOptimizer != null && attackOptimizer.ShouldBlockAttack())
+        {
+            return;
+        }
+
+        // Register attack attempt for coordination
+        if (attackOptimizer != null)
+        {
+            attackOptimizer.RegisterAttackAttempt();
         }
 
         if (enableRangedAttack)

@@ -68,8 +68,14 @@
     - Integrate with existing navigation system
     - _Requirements: 1.5_
 
-- [ ] 3. Implement attack timing optimization system
-  - [ ] 3.1 Create attack opportunity scoring system
+- [x] 3. Implement attack timing optimization system
+
+
+
+
+  - [x] 3.1 Create attack opportunity scoring system
+
+
     - Calculate base opportunity score from distance and cooldown
     - Increase score when player is attacking (vulnerable)
     - Decrease score when player has buffs/shields
@@ -84,7 +90,9 @@
     - **Property 7: Attack opportunity decrease with buffs**
     - **Validates: Requirements 2.3**
 
-  - [ ] 3.4 Implement coordinated attack timing
+  - [x] 3.4 Implement coordinated attack timing
+
+
     - Detect when multiple monsters are near same player
     - Stagger attack timings (minimum 0.3s between attacks)
     - Use shared timing coordinator or communication system
@@ -94,13 +102,17 @@
     - **Property 6: Coordinated attack timing**
     - **Validates: Requirements 2.2**
 
-  - [ ] 3.6 Implement bait-and-punish behavior
+  - [x] 3.6 Implement bait-and-punish behavior
+
+
     - Detect when player overextends
     - Reward monsters for successful baiting
     - Integrate with reward calculation system
     - _Requirements: 2.4_
 
-  - [ ] 3.7 Enforce attack prevention during cooldown
+  - [x] 3.7 Enforce attack prevention during cooldown
+
+
     - Block attack attempts when cooldown is active
     - Prefer repositioning actions during cooldown
     - _Requirements: 2.5_

@@ -221,19 +221,7 @@ public class EnemySituationEvaluator : MonoBehaviour
             nearbyTargetCount = snapshot.nearbyTargets?.Length ?? 0
         };
 
-        float distanceFactor = targetDetection.radius > 0f
-            ? Mathf.Clamp01(1f - snapshot.distanceToPlayer / targetDetection.radius)
-            : Mathf.Clamp01(1f - snapshot.distanceToPlayer * 0.2f);
-
-        state.attackOpportunity = Mathf.Clamp01(distanceFactor * (1f - Mathf.Clamp01(snapshot.attackCooldownRemaining)));
-        state.retreatUrgency = Mathf.Clamp01((1f - snapshot.enemyHpRatio) + (snapshot.isObstructed ? 0.25f : 0f));
-
-        float targetDensity = targetSlotCount > 0
-            ? Mathf.Clamp01((snapshot.nearbyTargets?.Length ?? 0) / (float)targetSlotCount)
-            : 0f;
-        state.exploreValue = Mathf.Clamp01(targetDensity * 0.6f + snapshot.playerHpRatio * 0.4f);
-
-        // NEW: Populate player state fields
+        // NEW: Populate player state fields (must be done before attack opportunity calculation)
         PopulatePlayerState(ref state);
         
         // NEW: Populate ally information
@@ -244,6 +232,27 @@ public class EnemySituationEvaluator : MonoBehaviour
         
         // NEW: Calculate tactical scores
         CalculateTacticalScores(ref state);
+
+        // Calculate attack opportunity (will be overridden by AttackTimingOptimizer if present)
+        float distanceFactor = targetDetection.radius > 0f
+            ? Mathf.Clamp01(1f - snapshot.distanceToPlayer / targetDetection.radius)
+            : Mathf.Clamp01(1f - snapshot.distanceToPlayer * 0.2f);
+
+        state.attackOpportunity = Mathf.Clamp01(distanceFactor * (1f - Mathf.Clamp01(snapshot.attackCooldownRemaining)));
+        
+        // Check if AttackTimingOptimizer is present and use its score
+        AttackTimingOptimizer attackOptimizer = GetComponent<AttackTimingOptimizer>();
+        if (attackOptimizer != null)
+        {
+            state.attackOpportunity = attackOptimizer.GetAttackOpportunityScore();
+        }
+        
+        state.retreatUrgency = Mathf.Clamp01((1f - snapshot.enemyHpRatio) + (snapshot.isObstructed ? 0.25f : 0f));
+
+        float targetDensity = targetSlotCount > 0
+            ? Mathf.Clamp01((snapshot.nearbyTargets?.Length ?? 0) / (float)targetSlotCount)
+            : 0f;
+        state.exploreValue = Mathf.Clamp01(targetDensity * 0.6f + snapshot.playerHpRatio * 0.4f);
 
         return state;
     }
