@@ -278,14 +278,23 @@
     - _Requirements: 5.4_
 
 
-- [ ] 7. Implement ranged combat behavior system
-  - [ ] 7.1 Create RangedCombatBehavior component
+- [x] 7. Implement ranged combat behavior system
+
+
+
+
+
+  - [x] 7.1 Create RangedCombatBehavior component
+
+
     - Define distance management parameters (min safe, max engagement, optimal)
     - Define predictive aiming parameters (prediction strength, accuracy variance)
     - Attach component to ranged monster prefabs (Cult_Mage_Toxin, etc.)
     - _Requirements: 6.1, 6.4_
 
-  - [ ] 7.2 Implement distance-based retreat logic
+
+
+  - [x] 7.2 Implement distance-based retreat logic
     - Check if current distance < min safe distance
     - Calculate retreat vector away from player
     - Maintain line of sight during retreat
@@ -298,36 +307,44 @@
 
   - [ ]* 7.4 Write property test for retreat cessation at max distance
     - **Property 20: Retreat cessation at max distance**
+
+
     - **Validates: Requirements 6.4**
 
-  - [ ] 7.5 Implement simultaneous retreat and attack
+  - [x] 7.5 Implement simultaneous retreat and attack
     - Enable movement and attack actions to occur together
     - Maintain attack capability while retreating
     - Update Monsters.cs to support concurrent actions
     - _Requirements: 6.2_
 
+
   - [ ]* 7.6 Write property test for simultaneous retreat and attack
     - **Property 18: Simultaneous retreat and attack**
     - **Validates: Requirements 6.2**
 
-  - [ ] 7.7 Implement blocked retreat handling
+  - [x] 7.7 Implement blocked retreat handling
     - Detect when retreat path is obstructed
     - Calculate perpendicular strafe direction
     - Move perpendicular to player approach vector
     - _Requirements: 6.3_
 
+
+
   - [ ]* 7.8 Write property test for perpendicular strafe on blocked retreat
     - **Property 19: Perpendicular strafe on blocked retreat**
     - **Validates: Requirements 6.3**
 
-  - [ ] 7.9 Implement adaptive retreat vector
+
+
+  - [x] 7.9 Implement adaptive retreat vector
     - Monitor player direction changes
     - Adjust retreat vector in response to player movement
     - Predict player interception attempts
     - _Requirements: 6.5_
 
-  - [ ] 7.10 Implement predictive aiming system
+  - [x] 7.10 Implement predictive aiming system
     - Calculate player velocity vector
+
     - Compute lead vector based on projectile speed
     - Apply prediction strength multiplier
     - Add accuracy variance for realism
@@ -337,23 +354,25 @@
     - **Property 21: Predictive aim calculation**
     - **Validates: Requirements 7.1**
 
-  - [ ] 7.12 Implement strafe-and-shoot behavior
+
+  - [x] 7.12 Implement strafe-and-shoot behavior
     - Enable lateral movement while firing
     - Maintain accuracy during strafing
     - Coordinate strafe direction with retreat logic
     - _Requirements: 7.3_
 
+
   - [ ]* 7.13 Write property test for simultaneous strafe and fire
     - **Property 22: Simultaneous strafe and fire**
     - **Validates: Requirements 7.3**
 
-  - [ ] 7.14 Implement aim accuracy rewards
+  - [x] 7.14 Implement aim accuracy rewards
     - Apply small penalty for missed shots
     - Apply reward for hits, scaled by shot difficulty
     - Track prediction accuracy over time
     - _Requirements: 7.4, 7.5_
 
-  - [ ] 7.15 Implement pattern learning for player movement
+  - [x] 7.15 Implement pattern learning for player movement
     - Record player movement patterns in working memory
     - Detect consistent patterns over time
     - Exploit patterns for improved prediction

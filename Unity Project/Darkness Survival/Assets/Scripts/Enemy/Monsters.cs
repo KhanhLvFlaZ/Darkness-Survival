@@ -98,6 +98,7 @@ public class Monsters : MonoBehaviour, IDamageable
     EnemyWorkingMemory workingMemory;
     RewardCalculator rewardCalculator;
     AttackTimingOptimizer attackOptimizer;
+    RangedCombatBehavior rangedCombat;
     IEnemyBrain brainInstance;
     Vector2 brainDesiredDirection;
     bool pendingAttackRequest;
@@ -177,6 +178,7 @@ public class Monsters : MonoBehaviour, IDamageable
         workingMemory = GetComponent<EnemyWorkingMemory>();
         rewardCalculator = GetComponent<RewardCalculator>();
         attackOptimizer = GetComponent<AttackTimingOptimizer>();
+        rangedCombat = GetComponent<RangedCombatBehavior>();
 
         if (brainBehaviour is IEnemyBrain runtimeBrain)
         {
@@ -367,13 +369,55 @@ public class Monsters : MonoBehaviour, IDamageable
 
         if (!isKnockedBack)
         {
+            Vector2 moveDirection = direction;
+            
+            // Apply ranged combat behavior if available
+            if (rangedCombat != null && enableRangedAttack && targetDestination != null)
+            {
+                float distanceToPlayer = Vector2.Distance(transform.position, targetDestination.position);
+                
+                // Check if should retreat
+                if (rangedCombat.ShouldRetreat(distanceToPlayer))
+                {
+                    Vector2 retreatVector = rangedCombat.CalculateRetreatVector(targetDestination.position, transform.position);
+                    moveDirection = retreatVector;
+                }
+                // Check if should stop retreating
+                else if (rangedCombat.ShouldStopRetreating(distanceToPlayer))
+                {
+                    // Maintain position or slight movement
+                    moveDirection = Vector2.zero;
+                }
+                // Check if should advance
+                else if (rangedCombat.ShouldAdvance(distanceToPlayer))
+                {
+                    // Move toward player
+                    moveDirection = direction;
+                }
+                else
+                {
+                    // In optimal range, use strafe behavior if enabled
+                    Vector2 strafeDir = rangedCombat.GetStrafeDirection(direction);
+                    if (strafeDir.sqrMagnitude > 0.01f)
+                    {
+                        moveDirection = strafeDir;
+                    }
+                    else
+                    {
+                        // Maintain position
+                        moveDirection = Vector2.zero;
+                    }
+                }
+            }
+            
             if (brainInstance != null)
             {
+                // Brain can override ranged combat behavior
                 rigidbody2d.velocity = brainDesiredDirection * currentSpeed;
             }
             else
             {
-                rigidbody2d.velocity = direction * currentSpeed;
+                rigidbody2d.velocity = moveDirection * currentSpeed;
             }
         }
         else
@@ -626,9 +670,24 @@ public class Monsters : MonoBehaviour, IDamageable
         }
 
         float sqrDistance = (targetDestination.position - transform.position).sqrMagnitude;
-        if (sqrDistance <= rangedAttackRange * rangedAttackRange)
+        float distance = Mathf.Sqrt(sqrDistance);
+        
+        // Allow attack within range, even while retreating (simultaneous actions)
+        if (rangedCombat != null)
         {
-            Attack();
+            // Attack if within max engagement distance
+            if (distance <= rangedCombat.MaxEngagementDistance)
+            {
+                Attack();
+            }
+        }
+        else
+        {
+            // Fallback to basic range check
+            if (sqrDistance <= rangedAttackRange * rangedAttackRange)
+            {
+                Attack();
+            }
         }
     }
 
@@ -640,7 +699,39 @@ public class Monsters : MonoBehaviour, IDamageable
         }
 
         Transform spawn = projectileSpawnPoint != null ? projectileSpawnPoint : transform;
-        Vector3 direction = (targetDestination.position - spawn.position);
+        Vector3 targetPosition = targetDestination.position;
+        Vector2 playerVelocity = Vector2.zero;
+        
+        // Use predictive aiming if ranged combat behavior is available
+        if (rangedCombat != null)
+        {
+            // Get player velocity
+            Rigidbody2D playerRb = targetDestination.GetComponent<Rigidbody2D>();
+            if (playerRb != null)
+            {
+                playerVelocity = playerRb.velocity;
+            }
+            
+            // Get projectile speed from the prefab
+            float projectileSpeed = 10f; // Default
+            DemonicSpikeProjectile spikeComponent = projectilePrefab.GetComponent<DemonicSpikeProjectile>();
+            if (spikeComponent != null)
+            {
+                // Try to get speed via reflection or use default
+                projectileSpeed = 10f; // Assuming default speed
+            }
+            
+            // Calculate predictive aim point
+            Vector2 predictedPosition = rangedCombat.CalculatePredictiveAimPoint(
+                targetDestination.position, 
+                playerVelocity, 
+                projectileSpeed
+            );
+            
+            targetPosition = predictedPosition;
+        }
+        
+        Vector3 direction = (targetPosition - spawn.position);
         if (direction.sqrMagnitude < 0.001f)
         {
             direction = transform.right;
@@ -656,7 +747,41 @@ public class Monsters : MonoBehaviour, IDamageable
             spike.Initialize(transform);
             spike.SetDamage(currentDamage);
             spike.SetDirection(direction.x, direction.y);
+            
+            // Track shot for accuracy rewards (will be updated when projectile hits/misses)
+            if (rangedCombat != null)
+            {
+                float shotDifficulty = rangedCombat.CalculateShotDifficulty(targetDestination.position, playerVelocity);
+                // Store shot info for later tracking
+                StartCoroutine(TrackProjectileResult(spike, shotDifficulty));
+            }
         }
         return true;
+    }
+    
+    System.Collections.IEnumerator TrackProjectileResult(DemonicSpikeProjectile projectile, float shotDifficulty)
+    {
+        // Wait for projectile to either hit or be destroyed
+        float timeout = 5f;
+        float elapsed = 0f;
+        bool hit = false;
+        
+        while (projectile != null && elapsed < timeout)
+        {
+            yield return null;
+            elapsed += Time.deltaTime;
+        }
+        
+        // If projectile was destroyed quickly, it likely hit something
+        if (elapsed < timeout && projectile == null)
+        {
+            hit = true;
+        }
+        
+        // Record result
+        if (rangedCombat != null)
+        {
+            rangedCombat.RecordShotResult(hit, shotDifficulty);
+        }
     }
 }
