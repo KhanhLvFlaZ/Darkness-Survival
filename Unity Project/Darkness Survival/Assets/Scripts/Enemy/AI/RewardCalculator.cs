@@ -185,4 +185,12 @@ public class RewardCalculator : MonoBehaviour
 
         brain?.OnEpisodeEnd(summary);
     }
+    
+    /// <summary>
+    /// Applies a custom obstruction penalty. Used by ObstacleUtilizationSystem.
+    /// </summary>
+    public void ApplyObstructionPenalty(float penaltyAmount)
+    {
+        AddReward(penaltyAmount);
+    }
 }

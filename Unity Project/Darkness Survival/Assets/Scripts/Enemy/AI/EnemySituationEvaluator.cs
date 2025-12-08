@@ -339,50 +339,65 @@ public class EnemySituationEvaluator : MonoBehaviour
     
     void PopulateEnvironmentData(ref SituationState state, Vector2 enemyPosition)
     {
-        const int maxObstacles = 8;
-        const float obstacleDetectionRadius = 8f;
+        // Check if ObstacleUtilizationSystem is available
+        ObstacleUtilizationSystem obstacleSystem = GetComponent<ObstacleUtilizationSystem>();
         
-        // Detect nearby obstacles (using physics layers for walls/obstacles)
-        LayerMask obstacleLayer = LayerMask.GetMask("Obstacle", "Wall", "Default");
-        Collider2D[] nearbyObstacles = Physics2D.OverlapCircleAll(enemyPosition, obstacleDetectionRadius, obstacleLayer);
-        
-        state.obstacleCount = Mathf.Min(nearbyObstacles.Length, maxObstacles);
-        state.nearbyObstaclePositions = new Vector2[maxObstacles];
-        
-        Vector2 nearestCover = Vector2.zero;
-        float nearestCoverDistance = float.MaxValue;
-        
-        for (int i = 0; i < maxObstacles; i++)
+        if (obstacleSystem != null)
         {
-            if (i < nearbyObstacles.Length)
+            // Use the dedicated obstacle system
+            state.nearbyObstaclePositions = obstacleSystem.GetDetectedObstaclePositions();
+            state.obstacleCount = obstacleSystem.GetObstacleCount();
+            state.nearestCoverPosition = obstacleSystem.GetNearestCoverPosition();
+            state.hasLineOfSight = obstacleSystem.HasLineOfSight();
+        }
+        else
+        {
+            // Fallback to basic detection
+            const int maxObstacles = 8;
+            const float obstacleDetectionRadius = 8f;
+            
+            // Detect nearby obstacles (using physics layers for walls/obstacles)
+            LayerMask obstacleLayer = LayerMask.GetMask("Obstacle", "Wall", "Default");
+            Collider2D[] nearbyObstacles = Physics2D.OverlapCircleAll(enemyPosition, obstacleDetectionRadius, obstacleLayer);
+            
+            state.obstacleCount = Mathf.Min(nearbyObstacles.Length, maxObstacles);
+            state.nearbyObstaclePositions = new Vector2[maxObstacles];
+            
+            Vector2 nearestCover = Vector2.zero;
+            float nearestCoverDistance = float.MaxValue;
+            
+            for (int i = 0; i < maxObstacles; i++)
             {
-                Vector2 obstaclePos = nearbyObstacles[i].transform.position;
-                state.nearbyObstaclePositions[i] = obstaclePos;
-                
-                // Track nearest cover position
-                float distance = Vector2.Distance(enemyPosition, obstaclePos);
-                if (distance < nearestCoverDistance)
+                if (i < nearbyObstacles.Length)
                 {
-                    nearestCoverDistance = distance;
-                    nearestCover = obstaclePos;
+                    Vector2 obstaclePos = nearbyObstacles[i].transform.position;
+                    state.nearbyObstaclePositions[i] = obstaclePos;
+                    
+                    // Track nearest cover position
+                    float distance = Vector2.Distance(enemyPosition, obstaclePos);
+                    if (distance < nearestCoverDistance)
+                    {
+                        nearestCoverDistance = distance;
+                        nearestCover = obstaclePos;
+                    }
+                }
+                else
+                {
+                    state.nearbyObstaclePositions[i] = Vector2.zero;
                 }
             }
-            else
+            
+            state.nearestCoverPosition = nearestCover;
+            
+            // Check line of sight to player
+            state.hasLineOfSight = true;
+            if (playerTransform != null)
             {
-                state.nearbyObstaclePositions[i] = Vector2.zero;
+                Vector2 directionToPlayer = (state.playerPosition - enemyPosition).normalized;
+                float distanceToPlayer = Vector2.Distance(enemyPosition, state.playerPosition);
+                RaycastHit2D hit = Physics2D.Raycast(enemyPosition, directionToPlayer, distanceToPlayer, obstacleLayer);
+                state.hasLineOfSight = hit.collider == null;
             }
-        }
-        
-        state.nearestCoverPosition = nearestCover;
-        
-        // Check line of sight to player
-        state.hasLineOfSight = true;
-        if (playerTransform != null)
-        {
-            Vector2 directionToPlayer = (state.playerPosition - enemyPosition).normalized;
-            float distanceToPlayer = Vector2.Distance(enemyPosition, state.playerPosition);
-            RaycastHit2D hit = Physics2D.Raycast(enemyPosition, directionToPlayer, distanceToPlayer, obstacleLayer);
-            state.hasLineOfSight = hit.collider == null;
         }
     }
     
