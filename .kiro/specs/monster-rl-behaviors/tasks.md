@@ -444,10 +444,15 @@
     - **Validates: Requirements 8.5**
 
 
-- [ ] 9. Implement AI tier system
+- [x] 9. Implement AI tier system
 
 
-  - [ ] 9.1 Create AITier enum and AITierManager component
+
+
+
+  - [x] 9.1 Create AITier enum and AITierManager component
+
+
     - Define tier levels (Novice, Learning, Trained, Expert)
     - Create manager component to control tier behavior
     - Add tier assignment logic on monster spawn
@@ -457,7 +462,9 @@
     - **Property 25: Valid AI tier assignment**
     - **Validates: Requirements 9.1**
 
-  - [ ] 9.3 Implement tier-based decision backend selection
+  - [x] 9.3 Implement tier-based decision backend selection
+
+
     - Novice: Heuristic only
     - Learning: Blend ML and heuristic with exploration
     - Trained: Primarily ML with minimal exploration
@@ -472,14 +479,18 @@
     - **Property 27: Expert tier uses ML only**
     - **Validates: Requirements 9.5**
 
-  - [ ] 9.6 Implement exploration rate management
+  - [x] 9.6 Implement exploration rate management
+
+
     - Calculate exploration rate based on tier
     - Apply exploration noise to actions (Learning tier)
     - Reduce exploration over time (Trained tier)
     - Disable exploration for Expert tier
     - _Requirements: 9.3, 9.4_
 
-  - [ ] 9.7 Implement policy blending
+  - [x] 9.7 Implement policy blending
+
+
     - Calculate blend weight based on tier
     - Interpolate between heuristic and ML decisions
     - Ensure smooth transitions between decision sources

@@ -18,6 +18,9 @@ public class HybridEnemyBrain : MonoBehaviour, IEnemyBrain
 
     [Header("Execution")]
     [SerializeField] DecisionBackend backend = DecisionBackend.Auto;
+    
+    [Header("AI Tier Integration")]
+    [SerializeField] private AITierManager tierManager;
 
     [Header("Heuristic Settings")]
     [SerializeField] float chaseDistance = 4f;
@@ -54,6 +57,13 @@ public class HybridEnemyBrain : MonoBehaviour, IEnemyBrain
     void Awake()
     {
         evaluator = GetComponent<EnemySituationEvaluator>();
+        
+        // Try to get AITierManager if not assigned
+        if (tierManager == null)
+        {
+            tierManager = GetComponent<AITierManager>();
+        }
+        
 #if UNITY_BARRACUDA
         InitializePolicy();
 #endif
@@ -88,11 +98,47 @@ public class HybridEnemyBrain : MonoBehaviour, IEnemyBrain
 
     public EnemyAction Decide(in SituationState state, EnemyWorkingMemory memory)
     {
+        // Determine decision backend based on AI tier
+        if (tierManager != null)
+        {
+            AITier tier = tierManager.CurrentTier;
+            
+            switch (tier)
+            {
+                case AITier.Novice:
+                    // Novice: Heuristic only
+                    return DecideHeuristic(state);
+                
+                case AITier.Learning:
+                    // Learning: Blend ML and heuristic with exploration
+                    return DecideWithBlending(state, memory);
+                
+                case AITier.Trained:
+                    // Trained: Primarily ML with minimal exploration
+                    return DecideWithBlending(state, memory);
+                
+                case AITier.Expert:
+                    // Expert: ML only with advanced features
+#if UNITY_BARRACUDA
+                    if (TryEvaluateMlPolicy(out EnemyAction mlAction))
+                    {
+                        return mlAction;
+                    }
+#endif
+                    // Fallback to heuristic if ML fails
+                    return DecideHeuristic(state);
+                
+                default:
+                    return DecideHeuristic(state);
+            }
+        }
+        
+        // Legacy behavior when no tier manager is present
 #if UNITY_BARRACUDA
         if ((backend == DecisionBackend.MlAgentsPolicyOnly || backend == DecisionBackend.Auto) &&
-            TryEvaluateMlPolicy(out EnemyAction mlAction))
+            TryEvaluateMlPolicy(out EnemyAction legacyMlAction))
         {
-            return mlAction;
+            return legacyMlAction;
         }
 #endif
 
@@ -112,6 +158,34 @@ public class HybridEnemyBrain : MonoBehaviour, IEnemyBrain
 #endif
     }
 
+    EnemyAction DecideWithBlending(in SituationState state, EnemyWorkingMemory memory)
+    {
+        EnemyAction heuristicAction = DecideHeuristic(state);
+        
+#if UNITY_BARRACUDA
+        // Try to get ML policy action
+        if (TryEvaluateMlPolicy(out EnemyAction mlAction))
+        {
+            // Get blend weight from tier manager
+            float blendWeight = tierManager != null ? tierManager.GetPolicyBlendWeight() : 0.5f;
+            
+            // Blend the two actions
+            EnemyAction blendedAction = BlendActions(heuristicAction, mlAction, blendWeight);
+            
+            // Apply exploration noise if needed
+            if (tierManager != null && tierManager.ShouldExplore())
+            {
+                blendedAction = ApplyExplorationNoise(blendedAction);
+            }
+            
+            return blendedAction;
+        }
+#endif
+        
+        // Fallback to heuristic if ML is not available
+        return heuristicAction;
+    }
+    
     EnemyAction DecideHeuristic(in SituationState state)
     {
         Vector2 toPlayer = state.playerPosition - state.enemyPosition;
@@ -158,6 +232,61 @@ public class HybridEnemyBrain : MonoBehaviour, IEnemyBrain
         };
     }
 
+    EnemyAction BlendActions(EnemyAction heuristic, EnemyAction ml, float mlWeight)
+    {
+        // Clamp blend weight to [0, 1]
+        mlWeight = Mathf.Clamp01(mlWeight);
+        float heuristicWeight = 1f - mlWeight;
+        
+        // For action type, use ML if weight > 0.5, otherwise heuristic
+        EnemyActionType blendedType = mlWeight > 0.5f ? ml.type : heuristic.type;
+        
+        // Blend movement directions
+        Vector2 blendedDirection = (heuristic.moveDirection * heuristicWeight + ml.moveDirection * mlWeight);
+        if (blendedDirection.sqrMagnitude > 1f)
+        {
+            blendedDirection = blendedDirection.normalized;
+        }
+        
+        // For boolean flags, use weighted probability
+        bool blendedAttack = mlWeight > 0.5f ? ml.attemptAttack : heuristic.attemptAttack;
+        bool blendedSpirit = mlWeight > 0.5f ? ml.requestSpiritMode : heuristic.requestSpiritMode;
+        
+        return new EnemyAction
+        {
+            type = blendedType,
+            moveDirection = blendedDirection,
+            attemptAttack = blendedAttack,
+            requestSpiritMode = blendedSpirit
+        };
+    }
+    
+    EnemyAction ApplyExplorationNoise(EnemyAction action)
+    {
+        if (tierManager == null)
+        {
+            return action;
+        }
+        
+        // Add random noise to movement direction
+        Vector2 explorationDir = tierManager.GetExplorationDirection();
+        float explorationStrength = tierManager.GetExplorationRate();
+        
+        Vector2 noisyDirection = Vector2.Lerp(action.moveDirection, explorationDir, explorationStrength);
+        if (noisyDirection.sqrMagnitude > 1f)
+        {
+            noisyDirection = noisyDirection.normalized;
+        }
+        
+        return new EnemyAction
+        {
+            type = action.type,
+            moveDirection = noisyDirection,
+            attemptAttack = action.attemptAttack,
+            requestSpiritMode = action.requestSpiritMode
+        };
+    }
+    
     Vector2 GetStrafeDirection(Vector2 toPlayer)
     {
         if (toPlayer.sqrMagnitude < 0.0001f)
