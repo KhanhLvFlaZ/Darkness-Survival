@@ -1,5 +1,97 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3842501234567890123
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3842501234567890124}
+  m_Layer: 7
+  m_Name: ProjectileSpawnPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3842501234567890124
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3842501234567890123}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.65, y: 4.5, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5549453769974419955}
+  m_RootOrder: 4
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &4825111269451454745
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4848428159239114808}
+  - component: {fileID: 17544392096607601}
+  - component: {fileID: 560852609744616675}
+  m_Layer: 0
+  m_Name: ObjectTrigger
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4848428159239114808
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4825111269451454745}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0.16900001, y: 3.8400002, z: 0}
+  m_LocalScale: {x: 5.555555, y: 5.333333, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5549453769974419955}
+  m_RootOrder: 5
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!58 &17544392096607601
+CircleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4825111269451454745}
+  m_Enabled: 1
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_UsedByComposite: 0
+  m_Offset: {x: 0, y: 0}
+  serializedVersion: 2
+  m_Radius: 0.5
+--- !u!114 &560852609744616675
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4825111269451454745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0e0d33556bd9e5f4284c5278381bfaf8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &5549453769974419956
 GameObject:
   m_ObjectHideFlags: 0
@@ -20,6 +112,8 @@ GameObject:
   - component: {fileID: 8337289279476331373}
   - component: {fileID: 1212900665673492195}
   - component: {fileID: 1354660416341576604}
+  - component: {fileID: 7064812061908321386}
+  - component: {fileID: 3977361083093484014}
   m_Layer: 7
   m_Name: Cult_Mage_Toxin
   m_TagString: Untagged
@@ -44,6 +138,7 @@ Transform:
   - {fileID: 9052582667593133613}
   - {fileID: 333301710459823020}
   - {fileID: 3842501234567890124}
+  - {fileID: 4848428159239114808}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -189,7 +284,7 @@ MonoBehaviour:
   colorChangeTime: 1
   slowDownSpeed: 0.3
   sideSwapDelay: 0.2
-  objectsDetection: {fileID: 0}
+  objectsDetection: {fileID: 560852609744616675}
   attackReloadTime: 1.8
   knockBackTime: 0.1
   hpBar: {fileID: 0}
@@ -200,15 +295,16 @@ MonoBehaviour:
   hpBarWidthMultiplier: 1
   hpBarMinWidth: 0.75
   hpBarHeightMultiplier: 0.4
-  enableRangedAttack: 1
-  rangedAttackRange: 8
-  projectileSpawnPoint: {fileID: 3842501234567890124}
-  projectilePrefab: {fileID: 7398175097110399312, guid: 0269a4ec687654c4b99a6fb4b974d53e, type: 3}
   useSpriteTopForHpBar: 1
   hpBarStandardVerticalAdjustment: -0.3
   brainBehaviour: {fileID: 0}
   brainSteerWeight: 0.5
   brainAttackRange: 1.35
+  enableRangedAttack: 1
+  rangedAttackRange: 6
+  projectileSpawnPoint: {fileID: 3842501234567890124}
+  projectilePrefab: {fileID: 7398175097110399312, guid: 0269a4ec687654c4b99a6fb4b974d53e, type: 3}
+  projectileSpawnForwardOffset: 0.65
 --- !u!114 &3555291963459634016
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -298,6 +394,42 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   capacity: 32
+--- !u!114 &7064812061908321386
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5549453769974419956}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90f9d274c8fca2341b641fca430000c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  minSafeDistance: 5
+  maxEngagementDistance: 9
+  optimalDistance: 7
+  predictionStrength: 0.8
+  aimAccuracyVariance: 0.05
+  enableSimultaneousActions: 1
+  enableStrafing: 1
+  strafeSpeedMultiplier: 0.8
+  enablePatternLearning: 1
+  patternMemorySize: 10
+  patternConsistencyThreshold: 0.7
+  showDebugGizmos: 0
+--- !u!114 &3977361083093484014
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5549453769974419956}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0e0d33556bd9e5f4284c5278381bfaf8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &5681473788906493378
 GameObject:
   m_ObjectHideFlags: 0
@@ -380,37 +512,6 @@ MonoBehaviour:
   - {x: 0.5, y: -0.5, z: 0}
   - {x: 0.5, y: 0.5, z: 0}
   - {x: -0.5, y: 0.5, z: 0}
---- !u!1 &3842501234567890123
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 3842501234567890124}
-  m_Layer: 7
-  m_Name: ProjectileSpawnPoint
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &3842501234567890124
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3842501234567890123}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.65, y: 4.5, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 5549453769974419955}
-  m_RootOrder: 4
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5948450490457409454
 GameObject:
   m_ObjectHideFlags: 0

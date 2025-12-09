@@ -94,44 +94,65 @@ public class RangedCombatBehavior : MonoBehaviour
     
     void Awake()
     {
-        monster = GetComponent<Monsters>();
-        situationEvaluator = GetComponent<EnemySituationEvaluator>();
-        rewardCalculator = GetComponent<RewardCalculator>();
-        
-        // Initialize pattern learning
-        if (enablePatternLearning)
+        try
         {
-            playerPositionHistory = new Vector2[patternMemorySize];
-            historyIndex = 0;
-            historyFilled = false;
+            monster = GetComponent<Monsters>();
+            situationEvaluator = GetComponent<EnemySituationEvaluator>();
+            rewardCalculator = GetComponent<RewardCalculator>();
+            
+            // Initialize pattern learning
+            if (enablePatternLearning && patternMemorySize > 0)
+            {
+                playerPositionHistory = new Vector2[patternMemorySize];
+                historyIndex = 0;
+                historyFilled = false;
+            }
+            
+            CachePlayerReferences();
         }
-        
-        CachePlayerReferences();
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[RangedCombatBehavior] Error in Awake: {e.Message}\n{e.StackTrace}");
+        }
     }
     
     void Start()
     {
-        if (playerTransform == null)
+        try
         {
-            CachePlayerReferences();
+            if (playerTransform == null)
+            {
+                CachePlayerReferences();
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[RangedCombatBehavior] Error in Start: {e.Message}\n{e.StackTrace}");
         }
     }
     
     void Update()
     {
-        if (playerTransform == null)
+        try
         {
-            CachePlayerReferences();
-            return;
+            if (playerTransform == null)
+            {
+                CachePlayerReferences();
+                return;
+            }
+            
+            // Update adaptive retreat vector
+            UpdateAdaptiveRetreatVector();
+            
+            // Update pattern learning
+            if (enablePatternLearning && playerPositionHistory != null)
+            {
+                UpdatePatternLearning();
+            }
         }
-        
-        // Update adaptive retreat vector
-        UpdateAdaptiveRetreatVector();
-        
-        // Update pattern learning
-        if (enablePatternLearning)
+        catch (System.Exception e)
         {
-            UpdatePatternLearning();
+            Debug.LogError($"[RangedCombatBehavior] Error in Update: {e.Message}\n{e.StackTrace}");
         }
     }
     
@@ -191,21 +212,29 @@ public class RangedCombatBehavior : MonoBehaviour
     /// </summary>
     public Vector2 CalculateRetreatVector(Vector2 playerPosition, Vector2 currentPosition)
     {
-        Vector2 awayFromPlayer = (currentPosition - playerPosition).normalized;
-        
-        // Check if retreat path is blocked
-        float checkDistance = 2f;
-        LayerMask obstacleLayer = LayerMask.GetMask("Obstacle", "Wall", "Default");
-        RaycastHit2D hit = Physics2D.Raycast(currentPosition, awayFromPlayer, checkDistance, obstacleLayer);
-        
-        if (hit.collider != null)
+        try
         {
-            // Path is blocked, calculate perpendicular strafe direction
-            return CalculatePerpendicularStrafeDirection(playerPosition, currentPosition);
+            Vector2 awayFromPlayer = (currentPosition - playerPosition).normalized;
+            
+            // Check if retreat path is blocked
+            float checkDistance = 2f;
+            LayerMask obstacleLayer = LayerMask.GetMask("Obstacle", "Wall", "Default");
+            RaycastHit2D hit = Physics2D.Raycast(currentPosition, awayFromPlayer, checkDistance, obstacleLayer);
+            
+            if (hit.collider != null)
+            {
+                // Path is blocked, calculate perpendicular strafe direction
+                return CalculatePerpendicularStrafeDirection(playerPosition, currentPosition);
+            }
+            
+            currentRetreatVector = awayFromPlayer;
+            return awayFromPlayer;
         }
-        
-        currentRetreatVector = awayFromPlayer;
-        return awayFromPlayer;
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[RangedCombatBehavior] Error in CalculateRetreatVector: {e.Message}");
+            return Vector2.zero;
+        }
     }
     
     /// <summary>
@@ -307,6 +336,11 @@ public class RangedCombatBehavior : MonoBehaviour
     /// </summary>
     public bool ShouldRetreat(float currentDistance)
     {
+        if (currentDistance < 0f || minSafeDistance <= 0f)
+        {
+            return false;
+        }
+        
         bool shouldRetreat = currentDistance < minSafeDistance;
         
         if (shouldRetreat != isRetreating)
@@ -323,6 +357,11 @@ public class RangedCombatBehavior : MonoBehaviour
     /// </summary>
     public bool ShouldAdvance(float currentDistance)
     {
+        if (currentDistance < 0f || maxEngagementDistance <= 0f)
+        {
+            return false;
+        }
+        
         return currentDistance > maxEngagementDistance;
     }
     
@@ -331,6 +370,11 @@ public class RangedCombatBehavior : MonoBehaviour
     /// </summary>
     public bool ShouldStopRetreating(float currentDistance)
     {
+        if (currentDistance < 0f || maxEngagementDistance <= 0f)
+        {
+            return false;
+        }
+        
         return currentDistance >= maxEngagementDistance;
     }
     

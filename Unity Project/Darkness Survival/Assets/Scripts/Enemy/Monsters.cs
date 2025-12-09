@@ -310,24 +310,17 @@ public class Monsters : MonoBehaviour, IDamageable
         // Check and change spirit mode //
         //////////////////////////////////
 
-        if (colorChange != null)
+        if (colorChange != null && objectsDetection != null)
         {
-            if (objectsDetection != null)
+            if (objectsDetection.IsDetected() && !isSpirit)
             {
-                if (objectsDetection.IsDetected() && !isSpirit)
-                {
-                    isSpirit = true;
-                    SpiritSettings(isSpirit);
-                }
-                if (!objectsDetection.IsDetected() && isSpirit)
-                {
-                    isSpirit = false;
-                    SpiritSettings(isSpirit);
-                }
+                isSpirit = true;
+                SpiritSettings(isSpirit);
             }
-            else
+            if (!objectsDetection.IsDetected() && isSpirit)
             {
-                Debug.Log(" Error :: Monsters -> ObjectTrigger can not be found! Object Detection fail.");
+                isSpirit = false;
+                SpiritSettings(isSpirit);
             }
         }
 
@@ -365,6 +358,12 @@ public class Monsters : MonoBehaviour, IDamageable
 
     private void FixedUpdate()
     {
+        // Safety check for targetDestination
+        if (targetDestination == null)
+        {
+            return;
+        }
+        
         Vector3 direction = (targetDestination.position - transform.position).normalized;
 
         if (!isKnockedBack)
@@ -372,28 +371,22 @@ public class Monsters : MonoBehaviour, IDamageable
             Vector2 moveDirection = direction;
             
             // Apply ranged combat behavior if available
-            if (rangedCombat != null && enableRangedAttack && targetDestination != null)
+            if (rangedCombat != null && enableRangedAttack)
             {
                 float distanceToPlayer = Vector2.Distance(transform.position, targetDestination.position);
                 
-                // Check if should retreat
+                // Priority 1: Too close - retreat
                 if (rangedCombat.ShouldRetreat(distanceToPlayer))
                 {
                     Vector2 retreatVector = rangedCombat.CalculateRetreatVector(targetDestination.position, transform.position);
                     moveDirection = retreatVector;
                 }
-                // Check if should stop retreating
-                else if (rangedCombat.ShouldStopRetreating(distanceToPlayer))
-                {
-                    // Maintain position or slight movement
-                    moveDirection = Vector2.zero;
-                }
-                // Check if should advance
+                // Priority 2: Too far - advance toward player
                 else if (rangedCombat.ShouldAdvance(distanceToPlayer))
                 {
-                    // Move toward player
-                    moveDirection = direction;
+                    moveDirection = direction; // Move toward player
                 }
+                // Priority 3: In optimal range - strafe or maintain
                 else
                 {
                     // In optimal range, use strafe behavior if enabled
@@ -404,8 +397,9 @@ public class Monsters : MonoBehaviour, IDamageable
                     }
                     else
                     {
-                        // Maintain position
-                        moveDirection = Vector2.zero;
+                        // Maintain optimal distance - slight movement toward player
+                        // to compensate for player movement
+                        moveDirection = direction * 0.3f; // Slow approach to maintain distance
                     }
                 }
             }
