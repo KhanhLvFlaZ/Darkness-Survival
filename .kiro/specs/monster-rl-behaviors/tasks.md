@@ -13,7 +13,13 @@
   - Add tactical score fields (flanking opportunity, kiting feasibility, cooperation potential)
   - _Requirements: 1.1, 3.5, 5.1, 5.2_
 
-- [ ]* 1.1 Write property test for valid action selection
+- [x] 1.1 Write property test for valid action selection
+
+
+
+
+
+
   - **Property 1: Valid action selection**
   - **Validates: Requirements 1.1**
 
@@ -31,7 +37,13 @@
     - Integrate with existing attack cooldown system
     - _Requirements: 1.2_
 
-  - [ ]* 2.2 Write property test for kiting distance increase
+  - [x] 2.2 Write property test for kiting distance increase
+
+
+
+
+
+
     - **Property 2: Kiting distance increase**
     - **Validates: Requirements 1.2**
 
@@ -44,7 +56,13 @@
     - Integrate with pathfinding system
     - _Requirements: 1.3_
 
-  - [ ]* 2.4 Write property test for flanking angle constraint
+  - [x] 2.4 Write property test for flanking angle constraint
+
+
+
+
+
+
     - **Property 3: Flanking angle constraint**
     - **Validates: Requirements 1.3**
 
@@ -818,7 +836,12 @@
     - Show coordination state labels
     - _Requirements: 14.5_
 
-- [ ] 15. Checkpoint - Ensure all tests pass
+- [x] 15. Checkpoint - Ensure all tests pass
+
+
+
+
+
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 16. Integration and polish
