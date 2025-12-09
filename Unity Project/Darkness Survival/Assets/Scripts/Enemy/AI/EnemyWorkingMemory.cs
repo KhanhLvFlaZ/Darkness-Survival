@@ -18,11 +18,13 @@ public class EnemyWorkingMemory : MonoBehaviour
     [SerializeField, Range(4, 128)] int capacity = 32;
 
     readonly Queue<MemoryEntry> entries = new Queue<MemoryEntry>();
+    int totalObservations = 0;
 
     public event Action<MemoryEntry> EntryRecorded;
 
     public IReadOnlyCollection<MemoryEntry> Entries => entries;
     public int Count => entries.Count;
+    public int TotalObservations => totalObservations;
 
     public void PushObservation(in SituationState state, in EnemyAction action, float reward)
     {
@@ -35,8 +37,14 @@ public class EnemyWorkingMemory : MonoBehaviour
         };
 
         entries.Enqueue(entry);
+        totalObservations++;
         TrimToCapacity();
         EntryRecorded?.Invoke(entry);
+    }
+    
+    public int GetObservationCount()
+    {
+        return totalObservations;
     }
 
     public int GetSequence(MemoryEntry[] buffer)
@@ -74,6 +82,7 @@ public class EnemyWorkingMemory : MonoBehaviour
     public void Clear()
     {
         entries.Clear();
+        // Note: We don't reset totalObservations as it tracks lifetime observations
     }
 
     public float SumRewards()

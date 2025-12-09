@@ -29,6 +29,7 @@ public class AttackTimingOptimizer : MonoBehaviour
     Monsters owner;
     EnemySituationEvaluator evaluator;
     RewardCalculator rewardCalculator;
+    MetricsTracker metricsTracker;
     
     float lastAttackTime = -999f;
     bool wasPlayerOverextended = false;
@@ -45,6 +46,7 @@ public class AttackTimingOptimizer : MonoBehaviour
         owner = GetComponent<Monsters>();
         evaluator = GetComponent<EnemySituationEvaluator>();
         rewardCalculator = GetComponent<RewardCalculator>();
+        metricsTracker = GetComponent<MetricsTracker>();
     }
     
     void OnEnable()
@@ -172,6 +174,17 @@ public class AttackTimingOptimizer : MonoBehaviour
         {
             lock (coordinationLock)
             {
+                float timeSinceLastGlobal = Time.time - lastGlobalAttackTime;
+                
+                // Track successful coordination if attacks are properly staggered
+                if (timeSinceLastGlobal >= minimumAttackInterval && timeSinceLastGlobal < minimumAttackInterval * 3f)
+                {
+                    if (metricsTracker != null)
+                    {
+                        metricsTracker.UpdateCooperationScore(true);
+                    }
+                }
+                
                 lastGlobalAttackTime = Time.time;
             }
         }

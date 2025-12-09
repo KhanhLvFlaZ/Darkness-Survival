@@ -193,4 +193,12 @@ public class RewardCalculator : MonoBehaviour
     {
         AddReward(penaltyAmount);
     }
+    
+    /// <summary>
+    /// Get the cumulative reward for this episode.
+    /// </summary>
+    public float GetCumulativeReward()
+    {
+        return cumulativeReward;
+    }
 }

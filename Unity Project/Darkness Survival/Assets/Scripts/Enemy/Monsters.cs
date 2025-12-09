@@ -99,6 +99,7 @@ public class Monsters : MonoBehaviour, IDamageable
     RewardCalculator rewardCalculator;
     AttackTimingOptimizer attackOptimizer;
     RangedCombatBehavior rangedCombat;
+    MetricsTracker metricsTracker;
     IEnemyBrain brainInstance;
     Vector2 brainDesiredDirection;
     bool pendingAttackRequest;
@@ -179,6 +180,7 @@ public class Monsters : MonoBehaviour, IDamageable
         rewardCalculator = GetComponent<RewardCalculator>();
         attackOptimizer = GetComponent<AttackTimingOptimizer>();
         rangedCombat = GetComponent<RangedCombatBehavior>();
+        metricsTracker = GetComponent<MetricsTracker>();
 
         if (brainBehaviour is IEnemyBrain runtimeBrain)
         {
@@ -189,6 +191,13 @@ public class Monsters : MonoBehaviour, IDamageable
         {
             situationEvaluator.StateUpdated += HandleStateUpdated;
         }
+        
+        // Subscribe to damage events for metrics tracking
+        if (metricsTracker != null)
+        {
+            OnDamageDealt += HandleDamageDealt;
+            OnDamageTaken += HandleDamageTaken;
+        }
     }
 
     private void OnDestroy()
@@ -196,6 +205,13 @@ public class Monsters : MonoBehaviour, IDamageable
         if (situationEvaluator != null)
         {
             situationEvaluator.StateUpdated -= HandleStateUpdated;
+        }
+        
+        // Unsubscribe from damage events
+        if (metricsTracker != null)
+        {
+            OnDamageDealt -= HandleDamageDealt;
+            OnDamageTaken -= HandleDamageTaken;
         }
     }
 
@@ -299,7 +315,14 @@ public class Monsters : MonoBehaviour, IDamageable
 
         UpdateBrain();
         TryRangedAttack();
-
+        
+        // Track positioning score for metrics
+        if (metricsTracker != null && targetDestination != null)
+        {
+            float distance = Vector2.Distance(transform.position, targetDestination.position);
+            bool inOptimalRange = metricsTracker.IsInOptimalRange(distance);
+            metricsTracker.UpdatePositioningScore(inOptimalRange, Time.deltaTime);
+        }
 
         if (timer > 0f)
         {
@@ -487,6 +510,20 @@ public class Monsters : MonoBehaviour, IDamageable
             float adjustedDamage = currentDamage * GameDifficultySettings.EnemyDamageMultiplier;
             targetCharacter.TakeDamage(adjustedDamage);
             OnDamageDealt?.Invoke(currentDamage);
+            
+            // Track attack hit for metrics
+            if (metricsTracker != null)
+            {
+                metricsTracker.UpdateAttackAccuracy(true);
+            }
+        }
+        else
+        {
+            // Track attack miss for metrics
+            if (metricsTracker != null)
+            {
+                metricsTracker.UpdateAttackAccuracy(false);
+            }
         }
         timer = attackReloadTime;
     }
@@ -530,6 +567,10 @@ public class Monsters : MonoBehaviour, IDamageable
             if (!episodeFinalized)
             {
                 episodeFinalized = true;
+                
+                // Record episode end for metrics and brain
+                RecordEpisodeEnd(survived: false);
+                
                 OnEnemyDeath?.Invoke();
             }
 
@@ -749,6 +790,11 @@ public class Monsters : MonoBehaviour, IDamageable
                 // Store shot info for later tracking
                 StartCoroutine(TrackProjectileResult(spike, shotDifficulty));
             }
+            else if (metricsTracker != null)
+            {
+                // Track projectile for basic accuracy metrics
+                StartCoroutine(TrackProjectileAccuracy(spike));
+            }
         }
         return true;
     }
@@ -776,6 +822,104 @@ public class Monsters : MonoBehaviour, IDamageable
         if (rangedCombat != null)
         {
             rangedCombat.RecordShotResult(hit, shotDifficulty);
+        }
+        
+        // Also track for metrics
+        if (metricsTracker != null)
+        {
+            metricsTracker.UpdateAttackAccuracy(hit);
+        }
+    }
+    
+    System.Collections.IEnumerator TrackProjectileAccuracy(DemonicSpikeProjectile projectile)
+    {
+        // Wait for projectile to either hit or be destroyed
+        float timeout = 5f;
+        float elapsed = 0f;
+        bool hit = false;
+        
+        while (projectile != null && elapsed < timeout)
+        {
+            yield return null;
+            elapsed += Time.deltaTime;
+        }
+        
+        // If projectile was destroyed quickly, it likely hit something
+        if (elapsed < timeout && projectile == null)
+        {
+            hit = true;
+        }
+        
+        // Track for metrics
+        if (metricsTracker != null)
+        {
+            metricsTracker.UpdateAttackAccuracy(hit);
+        }
+    }
+    
+    // Metrics tracking handlers
+    private void HandleDamageDealt(float damage)
+    {
+        if (metricsTracker != null)
+        {
+            metricsTracker.UpdateDamageEfficiency(damage, 0f);
+        }
+    }
+    
+    private void HandleDamageTaken(float damage)
+    {
+        if (metricsTracker != null)
+        {
+            metricsTracker.UpdateDamageEfficiency(0f, damage);
+        }
+    }
+    
+    /// <summary>
+    /// Record episode end and aggregate metrics.
+    /// Implements Requirement 10.1
+    /// </summary>
+    private void RecordEpisodeEnd(bool survived)
+    {
+        // Calculate episode duration
+        float duration = Time.time - (metricsTracker != null ? Time.time - metricsTracker.CurrentMetrics.totalTimeAlive : 0f);
+        
+        // Get cumulative reward from reward calculator
+        float cumulativeReward = 0f;
+        if (rewardCalculator != null)
+        {
+            cumulativeReward = rewardCalculator.GetCumulativeReward();
+        }
+        
+        // Get damage stats from metrics tracker
+        float damageDealt = 0f;
+        float damageTaken = 0f;
+        if (metricsTracker != null)
+        {
+            damageDealt = metricsTracker.CurrentMetrics.totalDamageDealt;
+            damageTaken = metricsTracker.CurrentMetrics.totalDamageTaken;
+        }
+        
+        // Create episode summary
+        EpisodeSummary summary = new EpisodeSummary
+        {
+            duration = duration,
+            observations = workingMemory != null ? workingMemory.GetObservationCount() : 0,
+            cumulativeReward = cumulativeReward,
+            survived = survived,
+            damageDealt = damageDealt,
+            damageTaken = damageTaken
+        };
+        
+        // Record in metrics tracker
+        if (metricsTracker != null)
+        {
+            metricsTracker.RecordEpisodeEnd(summary);
+        }
+        
+        // Notify brain
+        if (brainInstance != null)
+        {
+            brainInstance.OnEpisodeEnd(summary);
         }
     }
 }

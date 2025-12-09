@@ -33,6 +33,7 @@ public class CooperativeBehaviorSystem : MonoBehaviour
     
     Monsters owner;
     EnemySituationEvaluator situationEvaluator;
+    MetricsTracker metricsTracker;
     
     // Relay chase tracking
     static Dictionary<string, float> pursuitStartTimes = new Dictionary<string, float>();
@@ -42,6 +43,10 @@ public class CooperativeBehaviorSystem : MonoBehaviour
     CooperativeRole currentRole = CooperativeRole.None;
     float roleAssignmentTime = 0f;
     const float roleReassignmentInterval = 2f;
+    
+    // Cooperation tracking
+    float lastCooperationTime = 0f;
+    const float cooperationCooldown = 1f;
     
     public enum CooperativeRole
     {
@@ -58,6 +63,7 @@ public class CooperativeBehaviorSystem : MonoBehaviour
     {
         owner = GetComponent<Monsters>();
         situationEvaluator = GetComponent<EnemySituationEvaluator>();
+        metricsTracker = GetComponent<MetricsTracker>();
     }
     
     void Update()
@@ -113,6 +119,12 @@ public class CooperativeBehaviorSystem : MonoBehaviour
         
         // Check current divergence angle
         float currentAngle = Vector2.Angle(myToPlayer, allyToPlayer);
+        
+        // Track successful pincer formation
+        if (currentAngle >= pincerMinAngleDivergence)
+        {
+            TrackCooperationSuccess(true);
+        }
         
         // If divergence is insufficient, calculate a better position
         if (currentAngle < pincerMinAngleDivergence)
@@ -274,6 +286,10 @@ public class CooperativeBehaviorSystem : MonoBehaviour
                         // We're closer, take over pursuit
                         activePursuers[groupKey] = gameObject;
                         pursuitStartTimes[groupKey] = Time.time;
+                        
+                        // Track successful relay coordination
+                        TrackCooperationSuccess(true);
+                        
                         return true;
                     }
                 }
@@ -396,6 +412,34 @@ public class CooperativeBehaviorSystem : MonoBehaviour
         int gridX = Mathf.RoundToInt(state.playerPosition.x);
         int gridY = Mathf.RoundToInt(state.playerPosition.y);
         return $"group_{gridX}_{gridY}";
+    }
+    
+    /// <summary>
+    /// Track cooperation success for metrics.
+    /// Implements Requirement 10.5
+    /// </summary>
+    void TrackCooperationSuccess(bool successful)
+    {
+        // Avoid tracking too frequently
+        if (Time.time - lastCooperationTime < cooperationCooldown)
+        {
+            return;
+        }
+        
+        lastCooperationTime = Time.time;
+        
+        if (metricsTracker != null)
+        {
+            metricsTracker.UpdateCooperationScore(successful);
+        }
+    }
+    
+    /// <summary>
+    /// Public method to track coordinated actions from external systems.
+    /// </summary>
+    public void RecordCoordinatedAction(bool successful)
+    {
+        TrackCooperationSuccess(successful);
     }
     
     void OnDestroy()
