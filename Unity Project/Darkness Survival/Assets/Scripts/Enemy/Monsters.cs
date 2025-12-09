@@ -104,6 +104,11 @@ public class Monsters : MonoBehaviour, IDamageable
     Vector2 brainDesiredDirection;
     bool pendingAttackRequest;
     bool episodeFinalized;
+    
+    // ML-Agents training tracking
+    float episodeStartTime;
+    float damageDealtThisEpisode;
+    float damageTakenThisEpisode;
 
     //////////////
 
@@ -185,6 +190,15 @@ public class Monsters : MonoBehaviour, IDamageable
         if (brainBehaviour is IEnemyBrain runtimeBrain)
         {
             brainInstance = runtimeBrain;
+        }
+        else
+        {
+            // Check for MonsterAgent (ML-Agents) - using reflection to avoid compile dependency
+            var mlAgentComponent = GetComponent("MonsterAgent");
+            if (mlAgentComponent != null && mlAgentComponent is IEnemyBrain mlAgent)
+            {
+                brainInstance = mlAgent;
+            }
         }
 
         if (situationEvaluator != null)
@@ -660,6 +674,11 @@ public class Monsters : MonoBehaviour, IDamageable
         RecordObservation(0f);
     }
 
+    /// <summary>
+    /// Requirement 12.5: Continue recording observations even in heuristic mode.
+    /// Stores observations in working memory for offline training.
+    /// Ensures observation format matches ML requirements.
+    /// </summary>
     void RecordObservation(float rewardDelta)
     {
         if (workingMemory == null || !hasLatestState)
@@ -678,6 +697,8 @@ public class Monsters : MonoBehaviour, IDamageable
             return;
         }
 
+        // Record observation regardless of whether using ML or heuristic mode
+        // This enables offline training from heuristic demonstrations
         workingMemory.PushObservation(latestState, latestAction, rewardDelta);
         hasLatestObservation = true;
     }
@@ -920,6 +941,107 @@ public class Monsters : MonoBehaviour, IDamageable
         if (brainInstance != null)
         {
             brainInstance.OnEpisodeEnd(summary);
+        }
+    }
+    
+    /// <summary>
+    /// Execute an action from ML-Agents policy.
+    /// Called by MonsterAgent to apply ML decisions.
+    /// </summary>
+    public void ExecuteMLAction(EnemyAction action)
+    {
+        latestAction = action;
+        
+        // Apply movement
+        if (action.moveDirection.sqrMagnitude > 0.01f)
+        {
+            Vector2 movement = action.moveDirection * currentSpeed;
+            rigidbody2d.velocity = movement;
+        }
+        
+        // Handle attack attempt
+        if (action.attemptAttack && timer <= 0f)
+        {
+            AttemptAttack();
+        }
+        
+        // Handle spirit mode request (if applicable)
+        if (action.requestSpiritMode && !isSpirit)
+        {
+            SpiritSettings(true);
+        }
+    }
+    
+    /// <summary>
+    /// Reset monster state for training episode.
+    /// Called by MonsterAgent at episode start.
+    /// </summary>
+    public void ResetForTraining()
+    {
+        // Reset HP
+        hp = maxHp;
+        if (hpBar != null)
+        {
+            hpBar.SetState(hp, maxHp);
+        }
+        
+        // Reset velocity
+        if (rigidbody2d != null)
+        {
+            rigidbody2d.velocity = Vector2.zero;
+        }
+        
+        // Reset timers
+        timer = -1f;
+        swapTimer = 0f;
+        
+        // Reset spirit mode
+        if (isSpirit)
+        {
+            SpiritSettings(false);
+        }
+        
+        // Reset knockback
+        isKnockedBack = false;
+        
+        // Reset state tracking
+        hasLatestState = false;
+        damageDealtThisEpisode = 0f;
+        damageTakenThisEpisode = 0f;
+        episodeStartTime = Time.time;
+    }
+    
+    /// <summary>
+    /// Check if monster is dead.
+    /// Used by MonsterAgent to detect episode end.
+    /// </summary>
+    public bool IsDead()
+    {
+        return hp <= 0f;
+    }
+    
+    private void AttemptAttack()
+    {
+        if (targetCharacter != null)
+        {
+            // Melee attack
+            targetCharacter.TakeDamage(currentDamage);
+            OnDamageDealt?.Invoke(currentDamage);
+            timer = attackReloadTime;
+            
+            // Track attack for metrics
+            if (metricsTracker != null)
+            {
+                metricsTracker.UpdateAttackAccuracy(true);
+            }
+        }
+        else if (enableRangedAttack && projectilePrefab != null)
+        {
+            // Ranged attack
+            if (FireProjectile())
+            {
+                timer = attackReloadTime;
+            }
         }
     }
 }

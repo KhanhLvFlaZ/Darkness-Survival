@@ -257,8 +257,17 @@ public class EnemySituationEvaluator : MonoBehaviour
         return state;
     }
     
+    /// <summary>
+    /// Requirement 12.1, 12.2: Use default/zero values for missing observations.
+    /// Log warnings for critical missing data.
+    /// Continue execution with partial information.
+    /// Set validity flags in observation vector.
+    /// </summary>
     void PopulatePlayerState(ref SituationState state)
     {
+        // Requirement 12.1, 12.2: Set validity flag
+        state.playerDataValid = playerTransform != null;
+        
         // Get player velocity
         if (playerTransform != null)
         {
@@ -267,7 +276,14 @@ public class EnemySituationEvaluator : MonoBehaviour
         }
         else
         {
+            // Requirement 12.1, 12.2: Use default/zero values for missing observations
             state.playerVelocity = Vector2.zero;
+            
+            // Log warning for critical missing data (but only occasionally to avoid spam)
+            if (Time.frameCount % 300 == 0) // Log every ~5 seconds at 60fps
+            {
+                Debug.LogWarning($"[EnemySituationEvaluator] Player reference missing for {gameObject.name}. Using default values.");
+            }
         }
         
         // Check if player is attacking (using animator if available)
@@ -294,110 +310,184 @@ public class EnemySituationEvaluator : MonoBehaviour
         // TODO: Integrate with actual buff system when available
     }
     
+    /// <summary>
+    /// Requirement 12.1, 12.2: Use default/zero values for missing observations.
+    /// Continue execution with partial information.
+    /// Set validity flags in observation vector.
+    /// </summary>
     void PopulateAllyInformation(ref SituationState state, Vector2 enemyPosition)
     {
         const int maxAllies = 5;
         const float allyDetectionRadius = 10f;
         
-        // Find nearby ally monsters
-        Collider2D[] nearbyColliders = Physics2D.OverlapCircleAll(enemyPosition, allyDetectionRadius);
-        List<Monsters> allies = new List<Monsters>();
-        
-        foreach (Collider2D col in nearbyColliders)
-        {
-            if (col.gameObject == gameObject) continue; // Skip self
-            
-            Monsters monster = col.GetComponent<Monsters>();
-            if (monster != null && monster.gameObject.CompareTag(gameObject.tag))
-            {
-                allies.Add(monster);
-                if (allies.Count >= maxAllies) break;
-            }
-        }
-        
-        state.allyCount = allies.Count;
+        // Initialize arrays with default values
         state.allyPositions = new Vector2[maxAllies];
         state.allyHpRatios = new float[maxAllies];
         state.allyIsAttacking = new bool[maxAllies];
+        state.allyCount = 0;
+        state.allyDataValid = false; // Requirement 12.1, 12.2: Set validity flag
         
-        for (int i = 0; i < maxAllies; i++)
+        try
         {
-            if (i < allies.Count)
+            // Find nearby ally monsters
+            Collider2D[] nearbyColliders = Physics2D.OverlapCircleAll(enemyPosition, allyDetectionRadius);
+            List<Monsters> allies = new List<Monsters>();
+            
+            foreach (Collider2D col in nearbyColliders)
             {
-                state.allyPositions[i] = allies[i].transform.position;
-                state.allyHpRatios[i] = allies[i].MAX_HP > 0f ? allies[i].HP / allies[i].MAX_HP : 0f;
-                state.allyIsAttacking[i] = allies[i].ATTACK_COOLDOWN_REMAINING < 0.1f; // Approximate attack state
+                if (col == null || col.gameObject == null) continue; // Skip null colliders
+                if (col.gameObject == gameObject) continue; // Skip self
+                
+                Monsters monster = col.GetComponent<Monsters>();
+                if (monster != null && monster.gameObject.CompareTag(gameObject.tag))
+                {
+                    allies.Add(monster);
+                    if (allies.Count >= maxAllies) break;
+                }
             }
-            else
+            
+            state.allyCount = allies.Count;
+            state.allyDataValid = true; // Successfully detected allies
+            
+            for (int i = 0; i < maxAllies; i++)
+            {
+                if (i < allies.Count && allies[i] != null)
+                {
+                    // Requirement 12.1, 12.2: Use default/zero values for missing observations
+                    state.allyPositions[i] = allies[i].transform != null ? (Vector2)allies[i].transform.position : Vector2.zero;
+                    state.allyHpRatios[i] = allies[i].MAX_HP > 0f ? allies[i].HP / allies[i].MAX_HP : 0f;
+                    state.allyIsAttacking[i] = allies[i].ATTACK_COOLDOWN_REMAINING < 0.1f; // Approximate attack state
+                }
+                else
+                {
+                    state.allyPositions[i] = Vector2.zero;
+                    state.allyHpRatios[i] = 0f;
+                    state.allyIsAttacking[i] = false;
+                }
+            }
+        }
+        catch (System.Exception e)
+        {
+            // Requirement 12.1, 12.2: Continue execution with partial information
+            Debug.LogWarning($"[EnemySituationEvaluator] Error detecting allies for {gameObject.name}: {e.Message}");
+            
+            // Ensure arrays are filled with default values
+            for (int i = 0; i < maxAllies; i++)
             {
                 state.allyPositions[i] = Vector2.zero;
                 state.allyHpRatios[i] = 0f;
                 state.allyIsAttacking[i] = false;
             }
+            state.allyCount = 0;
+            state.allyDataValid = false;
         }
     }
     
+    /// <summary>
+    /// Requirement 12.1, 12.2: Use default/zero values for missing observations.
+    /// Continue execution with partial information.
+    /// Set validity flags in observation vector.
+    /// </summary>
     void PopulateEnvironmentData(ref SituationState state, Vector2 enemyPosition)
     {
-        // Check if ObstacleUtilizationSystem is available
-        ObstacleUtilizationSystem obstacleSystem = GetComponent<ObstacleUtilizationSystem>();
+        const int maxObstacles = 8;
         
-        if (obstacleSystem != null)
+        // Initialize with default values
+        state.nearbyObstaclePositions = new Vector2[maxObstacles];
+        state.obstacleCount = 0;
+        state.nearestCoverPosition = Vector2.zero;
+        state.hasLineOfSight = true; // Default to true (optimistic)
+        state.environmentDataValid = false; // Requirement 12.1, 12.2: Set validity flag
+        
+        try
         {
-            // Use the dedicated obstacle system
-            state.nearbyObstaclePositions = obstacleSystem.GetDetectedObstaclePositions();
-            state.obstacleCount = obstacleSystem.GetObstacleCount();
-            state.nearestCoverPosition = obstacleSystem.GetNearestCoverPosition();
-            state.hasLineOfSight = obstacleSystem.HasLineOfSight();
-        }
-        else
-        {
-            // Fallback to basic detection
-            const int maxObstacles = 8;
-            const float obstacleDetectionRadius = 8f;
+            // Check if ObstacleUtilizationSystem is available
+            ObstacleUtilizationSystem obstacleSystem = GetComponent<ObstacleUtilizationSystem>();
             
-            // Detect nearby obstacles (using physics layers for walls/obstacles)
-            LayerMask obstacleLayer = LayerMask.GetMask("Obstacle", "Wall", "Default");
-            Collider2D[] nearbyObstacles = Physics2D.OverlapCircleAll(enemyPosition, obstacleDetectionRadius, obstacleLayer);
-            
-            state.obstacleCount = Mathf.Min(nearbyObstacles.Length, maxObstacles);
-            state.nearbyObstaclePositions = new Vector2[maxObstacles];
-            
-            Vector2 nearestCover = Vector2.zero;
-            float nearestCoverDistance = float.MaxValue;
-            
-            for (int i = 0; i < maxObstacles; i++)
+            if (obstacleSystem != null)
             {
-                if (i < nearbyObstacles.Length)
+                // Use the dedicated obstacle system
+                Vector2[] obstaclePositions = obstacleSystem.GetDetectedObstaclePositions();
+                if (obstaclePositions != null)
                 {
-                    Vector2 obstaclePos = nearbyObstacles[i].transform.position;
-                    state.nearbyObstaclePositions[i] = obstaclePos;
+                    state.nearbyObstaclePositions = obstaclePositions;
+                    state.obstacleCount = obstacleSystem.GetObstacleCount();
+                }
+                state.nearestCoverPosition = obstacleSystem.GetNearestCoverPosition();
+                state.hasLineOfSight = obstacleSystem.HasLineOfSight();
+                state.environmentDataValid = true; // Successfully detected environment
+            }
+            else
+            {
+                // Fallback to basic detection
+                const float obstacleDetectionRadius = 8f;
+                
+                // Detect nearby obstacles (using physics layers for walls/obstacles)
+                LayerMask obstacleLayer = LayerMask.GetMask("Obstacle", "Wall", "Default");
+                Collider2D[] nearbyObstacles = Physics2D.OverlapCircleAll(enemyPosition, obstacleDetectionRadius, obstacleLayer);
+                
+                if (nearbyObstacles != null)
+                {
+                    state.obstacleCount = Mathf.Min(nearbyObstacles.Length, maxObstacles);
                     
-                    // Track nearest cover position
-                    float distance = Vector2.Distance(enemyPosition, obstaclePos);
-                    if (distance < nearestCoverDistance)
+                    Vector2 nearestCover = Vector2.zero;
+                    float nearestCoverDistance = float.MaxValue;
+                    
+                    for (int i = 0; i < maxObstacles; i++)
                     {
-                        nearestCoverDistance = distance;
-                        nearestCover = obstaclePos;
+                        if (i < nearbyObstacles.Length && nearbyObstacles[i] != null && nearbyObstacles[i].transform != null)
+                        {
+                            Vector2 obstaclePos = nearbyObstacles[i].transform.position;
+                            state.nearbyObstaclePositions[i] = obstaclePos;
+                            
+                            // Track nearest cover position
+                            float distance = Vector2.Distance(enemyPosition, obstaclePos);
+                            if (distance < nearestCoverDistance)
+                            {
+                                nearestCoverDistance = distance;
+                                nearestCover = obstaclePos;
+                            }
+                        }
+                        else
+                        {
+                            state.nearbyObstaclePositions[i] = Vector2.zero;
+                        }
+                    }
+                    
+                    state.nearestCoverPosition = nearestCover;
+                }
+                
+                // Check line of sight to player
+                state.hasLineOfSight = true;
+                if (playerTransform != null)
+                {
+                    Vector2 directionToPlayer = (state.playerPosition - enemyPosition).normalized;
+                    float distanceToPlayer = Vector2.Distance(enemyPosition, state.playerPosition);
+                    
+                    if (distanceToPlayer > 0.01f) // Only raycast if player is not at same position
+                    {
+                        RaycastHit2D hit = Physics2D.Raycast(enemyPosition, directionToPlayer, distanceToPlayer, obstacleLayer);
+                        state.hasLineOfSight = hit.collider == null;
                     }
                 }
-                else
-                {
-                    state.nearbyObstaclePositions[i] = Vector2.zero;
-                }
+                
+                state.environmentDataValid = true; // Successfully detected environment
             }
+        }
+        catch (System.Exception e)
+        {
+            // Requirement 12.1, 12.2: Continue execution with partial information
+            Debug.LogWarning($"[EnemySituationEvaluator] Error detecting environment for {gameObject.name}: {e.Message}");
             
-            state.nearestCoverPosition = nearestCover;
-            
-            // Check line of sight to player
-            state.hasLineOfSight = true;
-            if (playerTransform != null)
+            // Ensure arrays are filled with default values
+            for (int i = 0; i < maxObstacles; i++)
             {
-                Vector2 directionToPlayer = (state.playerPosition - enemyPosition).normalized;
-                float distanceToPlayer = Vector2.Distance(enemyPosition, state.playerPosition);
-                RaycastHit2D hit = Physics2D.Raycast(enemyPosition, directionToPlayer, distanceToPlayer, obstacleLayer);
-                state.hasLineOfSight = hit.collider == null;
+                state.nearbyObstaclePositions[i] = Vector2.zero;
             }
+            state.obstacleCount = 0;
+            state.nearestCoverPosition = Vector2.zero;
+            state.hasLineOfSight = true;
+            state.environmentDataValid = false;
         }
     }
     

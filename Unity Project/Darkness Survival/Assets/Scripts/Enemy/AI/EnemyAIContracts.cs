@@ -73,6 +73,11 @@ public struct SituationState
     public float flankingOpportunity;    // 0-1 score
     public float kitingFeasibility;      // 0-1 score
     public float cooperationPotential;   // 0-1 score
+    
+    // Requirement 12.1, 12.2: Validity flags for missing data
+    public bool playerDataValid;         // True if player reference is available
+    public bool allyDataValid;           // True if ally detection succeeded
+    public bool environmentDataValid;    // True if environment detection succeeded
 }
 
 [Serializable]

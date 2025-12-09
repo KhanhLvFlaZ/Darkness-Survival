@@ -201,4 +201,40 @@ public class RewardCalculator : MonoBehaviour
     {
         return cumulativeReward;
     }
+    
+    /// <summary>
+    /// Apply reward for coordinated attack.
+    /// Called by CooperativeBehaviorSystem when monsters coordinate.
+    /// </summary>
+    public void ApplyCoordinationReward()
+    {
+        if (config != null)
+        {
+            AddReward(config.CoordinatedAttackBonus);
+        }
+    }
+    
+    /// <summary>
+    /// Apply reward for attacking vulnerable player.
+    /// Called by AttackTimingOptimizer when player is vulnerable.
+    /// </summary>
+    public void ApplyVulnerableAttackReward()
+    {
+        if (config != null)
+        {
+            AddReward(config.VulnerableAttackBonus);
+        }
+    }
+    
+    /// <summary>
+    /// Apply reward for successful bait.
+    /// Called when monster successfully baits player.
+    /// </summary>
+    public void ApplyBaitSuccessReward()
+    {
+        if (config != null)
+        {
+            AddReward(config.BaitSuccessReward);
+        }
+    }
 }

@@ -54,6 +54,11 @@ public class HybridEnemyBrain : MonoBehaviour, IEnemyBrain
     float[] policyBuffer;
 #endif
 
+    // Requirement 12.4: Smooth mode switching
+    Vector2 previousMoveDirection = Vector2.zero;
+    bool wasUsingMlPolicy = false;
+    const float MaxVelocityDelta = 2.0f; // units/frame
+
     void Awake()
     {
         evaluator = GetComponent<EnemySituationEvaluator>();
@@ -66,6 +71,23 @@ public class HybridEnemyBrain : MonoBehaviour, IEnemyBrain
         
 #if UNITY_BARRACUDA
         InitializePolicy();
+        
+        // Requirement 12.1: Check if ML model is assigned on initialization
+        // Automatically switch to heuristic if model is null
+        if (policyModel == null && policyWorker == null)
+        {
+            // Log warning message in development builds
+            #if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.LogWarning($"[HybridEnemyBrain] No ML policy model assigned to {gameObject.name}. " +
+                           "Using heuristic fallback. Assign a .nn model in the inspector to enable ML policy.");
+            #endif
+            
+            // Automatically set tier to Novice if no model is available
+            if (tierManager != null && tierManager.CurrentTier != AITier.Novice)
+            {
+                tierManager.SetTier(AITier.Novice);
+            }
+        }
 #endif
     }
 
@@ -98,6 +120,17 @@ public class HybridEnemyBrain : MonoBehaviour, IEnemyBrain
 
     public EnemyAction Decide(in SituationState state, EnemyWorkingMemory memory)
     {
+        // Requirement 12.1: Automatically switch to heuristic if model is null
+        #if UNITY_BARRACUDA
+        bool hasModel = policyModel != null && policyWorker != null;
+        #else
+        bool hasModel = false;
+        #endif
+        
+        // Requirement 12.4: Detect when switching between ML and heuristic
+        bool isUsingMlPolicy = false;
+        EnemyAction rawAction;
+        
         // Determine decision backend based on AI tier
         if (tierManager != null)
         {
@@ -107,42 +140,114 @@ public class HybridEnemyBrain : MonoBehaviour, IEnemyBrain
             {
                 case AITier.Novice:
                     // Novice: Heuristic only
-                    return DecideHeuristic(state);
+                    isUsingMlPolicy = false;
+                    rawAction = DecideHeuristic(state);
+                    break;
                 
                 case AITier.Learning:
                     // Learning: Blend ML and heuristic with exploration
-                    return DecideWithBlending(state, memory);
+                    // Fallback to heuristic if no model available
+                    if (!hasModel)
+                    {
+                        isUsingMlPolicy = false;
+                        rawAction = DecideHeuristic(state);
+                    }
+                    else
+                    {
+                        isUsingMlPolicy = true;
+                        rawAction = DecideWithBlending(state, memory);
+                    }
+                    break;
                 
                 case AITier.Trained:
                     // Trained: Primarily ML with minimal exploration
-                    return DecideWithBlending(state, memory);
+                    // Fallback to heuristic if no model available
+                    if (!hasModel)
+                    {
+                        isUsingMlPolicy = false;
+                        rawAction = DecideHeuristic(state);
+                    }
+                    else
+                    {
+                        isUsingMlPolicy = true;
+                        rawAction = DecideWithBlending(state, memory);
+                    }
+                    break;
                 
                 case AITier.Expert:
                     // Expert: ML only with advanced features
-#if UNITY_BARRACUDA
-                    if (TryEvaluateMlPolicy(out EnemyAction mlAction))
+                    // Fallback to heuristic if no model available
+                    if (!hasModel)
                     {
-                        return mlAction;
+                        isUsingMlPolicy = false;
+                        rawAction = DecideHeuristic(state);
                     }
+                    else
+                    {
+#if UNITY_BARRACUDA
+                        if (TryEvaluateMlPolicy(out EnemyAction mlAction))
+                        {
+                            isUsingMlPolicy = true;
+                            rawAction = mlAction;
+                        }
+                        else
+                        {
+                            // Fallback to heuristic if ML fails
+                            isUsingMlPolicy = false;
+                            rawAction = DecideHeuristic(state);
+                        }
+#else
+                        isUsingMlPolicy = false;
+                        rawAction = DecideHeuristic(state);
 #endif
-                    // Fallback to heuristic if ML fails
-                    return DecideHeuristic(state);
+                    }
+                    break;
                 
                 default:
-                    return DecideHeuristic(state);
+                    isUsingMlPolicy = false;
+                    rawAction = DecideHeuristic(state);
+                    break;
+            }
+        }
+        else
+        {
+            // Legacy behavior when no tier manager is present
+            // Requirement 12.1: Check for model availability before attempting ML
+            if (!hasModel)
+            {
+                isUsingMlPolicy = false;
+                rawAction = DecideHeuristic(state);
+            }
+            else
+            {
+#if UNITY_BARRACUDA
+                if ((backend == DecisionBackend.MlAgentsPolicyOnly || backend == DecisionBackend.Auto) &&
+                    TryEvaluateMlPolicy(out EnemyAction legacyMlAction))
+                {
+                    isUsingMlPolicy = true;
+                    rawAction = legacyMlAction;
+                }
+                else
+                {
+                    isUsingMlPolicy = false;
+                    rawAction = DecideHeuristic(state);
+                }
+#else
+                isUsingMlPolicy = false;
+                rawAction = DecideHeuristic(state);
+#endif
             }
         }
         
-        // Legacy behavior when no tier manager is present
-#if UNITY_BARRACUDA
-        if ((backend == DecisionBackend.MlAgentsPolicyOnly || backend == DecisionBackend.Auto) &&
-            TryEvaluateMlPolicy(out EnemyAction legacyMlAction))
-        {
-            return legacyMlAction;
-        }
-#endif
-
-        return DecideHeuristic(state);
+        // Requirement 12.4: Interpolate velocity changes to avoid discontinuities
+        // Limit velocity delta to 2.0 units/frame
+        EnemyAction smoothedAction = ApplySmoothTransition(rawAction, isUsingMlPolicy);
+        
+        // Update tracking variables
+        previousMoveDirection = smoothedAction.moveDirection;
+        wasUsingMlPolicy = isUsingMlPolicy;
+        
+        return smoothedAction;
     }
 
     public void GiveReward(float reward)
@@ -188,6 +293,10 @@ public class HybridEnemyBrain : MonoBehaviour, IEnemyBrain
     
     EnemyAction DecideHeuristic(in SituationState state)
     {
+        // Requirement 12.5: Continue recording observations even in heuristic mode
+        // Observations are recorded by Monsters.cs UpdateBrain() method
+        // This ensures observation format matches ML requirements for offline training
+        
         Vector2 toPlayer = state.playerPosition - state.enemyPosition;
         float distance = Mathf.Max(0.01f, state.distanceToPlayer);
         Vector2 direction = Vector2.zero;
@@ -299,6 +408,56 @@ public class HybridEnemyBrain : MonoBehaviour, IEnemyBrain
             : new Vector2(-toPlayer.y, toPlayer.x);
         return perpendicular.normalized;
     }
+    
+    /// <summary>
+    /// Requirement 12.4: Apply smooth transition when switching between ML and heuristic modes.
+    /// Interpolates velocity changes to avoid discontinuities.
+    /// Limits velocity delta to 2.0 units/frame.
+    /// </summary>
+    EnemyAction ApplySmoothTransition(EnemyAction action, bool isUsingMlPolicy)
+    {
+        // Check if we're switching modes
+        bool isSwitchingModes = (isUsingMlPolicy != wasUsingMlPolicy);
+        
+        if (!isSwitchingModes)
+        {
+            // No mode switch, return action as-is
+            return action;
+        }
+        
+        // Calculate velocity delta
+        Vector2 velocityDelta = action.moveDirection - previousMoveDirection;
+        float deltaMagnitude = velocityDelta.magnitude;
+        
+        // If delta is within acceptable range, no smoothing needed
+        if (deltaMagnitude <= MaxVelocityDelta)
+        {
+            return action;
+        }
+        
+        // Limit the velocity change
+        Vector2 limitedDelta = velocityDelta.normalized * MaxVelocityDelta;
+        Vector2 smoothedDirection = previousMoveDirection + limitedDelta;
+        
+        // Normalize if magnitude exceeds 1
+        if (smoothedDirection.sqrMagnitude > 1f)
+        {
+            smoothedDirection = smoothedDirection.normalized;
+        }
+        
+        #if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Debug.Log($"[HybridEnemyBrain] Smoothing mode switch for {gameObject.name}. " +
+                 $"Delta: {deltaMagnitude:F2} -> {MaxVelocityDelta:F2}");
+        #endif
+        
+        return new EnemyAction
+        {
+            type = action.type,
+            moveDirection = smoothedDirection,
+            attemptAttack = action.attemptAttack,
+            requestSpiritMode = action.requestSpiritMode
+        };
+    }
 
 #if UNITY_BARRACUDA
     bool TryEvaluateMlPolicy(out EnemyAction action)
@@ -363,6 +522,26 @@ public class HybridEnemyBrain : MonoBehaviour, IEnemyBrain
             return false;
         }
 
+        // Requirement 12.3: Check for NaN and Infinity in action outputs
+        bool hasInvalidValues = false;
+        for (int i = 0; i < logits.Length; ++i)
+        {
+            if (float.IsNaN(logits[i]) || float.IsInfinity(logits[i]))
+            {
+                hasInvalidValues = true;
+                logits[i] = 0f; // Replace invalid values with 0
+            }
+        }
+        
+        if (hasInvalidValues)
+        {
+            Debug.LogWarning($"[HybridEnemyBrain] Invalid values (NaN/Infinity) detected in ML policy output for {gameObject.name}. " +
+                           "Values have been sanitized to 0.");
+            
+            // Requirement 12.3: Apply small penalty for invalid outputs
+            GiveReward(-0.1f);
+        }
+
         int bestIndex = 0;
         float bestScore = float.NegativeInfinity;
         for (int i = 0; i < ActionTypes.Length; ++i)
@@ -376,7 +555,12 @@ public class HybridEnemyBrain : MonoBehaviour, IEnemyBrain
         }
 
         int offset = ActionTypes.Length;
-        Vector2 move = new Vector2(logits[offset], logits[offset + 1]) * policyDirectionScale;
+        
+        // Requirement 12.3: Clamp continuous values to valid ranges [-1, 1]
+        float moveX = Mathf.Clamp(logits[offset] * policyDirectionScale, -1f, 1f);
+        float moveY = Mathf.Clamp(logits[offset + 1] * policyDirectionScale, -1f, 1f);
+        Vector2 move = new Vector2(moveX, moveY);
+        
         if (move.sqrMagnitude > 1f)
         {
             move = move.normalized;
@@ -386,9 +570,19 @@ public class HybridEnemyBrain : MonoBehaviour, IEnemyBrain
         bool attemptAttack = logits[offset++] > 0f;
         bool requestSpirit = logits[offset++] > 0f;
 
+        // Requirement 12.3: Default discrete actions to Idle if invalid
+        int clampedIndex = Mathf.Clamp(bestIndex, 0, ActionTypes.Length - 1);
+        if (clampedIndex != bestIndex)
+        {
+            Debug.LogWarning($"[HybridEnemyBrain] Invalid action type index {bestIndex} detected for {gameObject.name}. " +
+                           "Defaulting to Idle.");
+            clampedIndex = 0; // Idle
+            GiveReward(-0.1f);
+        }
+
         action = new EnemyAction
         {
-            type = ActionTypes[Mathf.Clamp(bestIndex, 0, ActionTypes.Length - 1)],
+            type = ActionTypes[clampedIndex],
             moveDirection = move,
             attemptAttack = attemptAttack,
             requestSpiritMode = requestSpirit
@@ -404,8 +598,35 @@ public class HybridEnemyBrain : MonoBehaviour, IEnemyBrain
             return;
         }
 
-        runtimeModel = ModelLoader.Load(policyModel);
-        policyWorker = WorkerFactory.CreateWorker(workerType, runtimeModel);
+        // Requirement 12.2: Wrap model loading in try-catch block
+        try
+        {
+            runtimeModel = ModelLoader.Load(policyModel);
+            policyWorker = WorkerFactory.CreateWorker(workerType, runtimeModel);
+            
+            #if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Log($"[HybridEnemyBrain] Successfully loaded ML policy model for {gameObject.name}");
+            #endif
+        }
+        catch (System.Exception e)
+        {
+            // Requirement 12.2: Log detailed error message on failure
+            Debug.LogError($"[HybridEnemyBrain] Failed to load ML policy model for {gameObject.name}. " +
+                         $"Error: {e.Message}\n" +
+                         $"Model: {policyModel.name}\n" +
+                         $"Stack trace: {e.StackTrace}");
+            
+            // Requirement 12.2: Switch to heuristic fallback without crashing
+            runtimeModel = null;
+            policyWorker = null;
+            
+            // Requirement 12.2: Set AI tier to Novice on failure
+            if (tierManager != null)
+            {
+                tierManager.SetTier(AITier.Novice);
+                Debug.LogWarning($"[HybridEnemyBrain] AI tier set to Novice for {gameObject.name} due to model loading failure.");
+            }
+        }
     }
 
     void DisposePolicy()

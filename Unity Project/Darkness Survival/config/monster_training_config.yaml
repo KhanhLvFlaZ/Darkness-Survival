@@ -1,0 +1,105 @@
+behaviors:
+  MonsterBehavior:
+    trainer_type: ppo
+    hyperparameters:
+      # Learning rate - how quickly the policy updates
+      # Start higher for faster initial learning, decrease for stability
+      learning_rate: 3.0e-4
+      learning_rate_schedule: linear  # Decrease over time
+      
+      # Batch size - number of experiences used per gradient descent update
+      # Larger = more stable but slower
+      batch_size: 1024
+      
+      # Buffer size - total number of experiences to collect before updating
+      # Should be multiple of batch_size
+      buffer_size: 10240
+      
+      # Number of passes through experience buffer during gradient descent
+      num_epoch: 3
+      
+      # Discount factor (gamma) - how much to value future rewards
+      # Higher = more long-term thinking
+      beta: 5.0e-3  # Entropy coefficient for exploration
+      epsilon: 0.2  # PPO clip parameter
+      lambd: 0.95   # Lambda for GAE (Generalized Advantage Estimation)
+      
+    # Network architecture
+    network_settings:
+      # Number of units in hidden layers
+      # Larger = more capacity but slower training
+      hidden_units: 256
+      num_layers: 2
+      
+      # Normalize inputs
+      normalize: true
+      
+      # Activation function
+      vis_encode_type: simple
+      
+    # Reward signals
+    reward_signals:
+      extrinsic:
+        # Discount factor for rewards
+        gamma: 0.99
+        strength: 1.0
+        
+    # Behavioral cloning (optional - for imitation learning)
+    # behavioral_cloning:
+    #   demo_path: demos/monster_demos.demo
+    #   strength: 0.5
+    #   steps: 10000
+    
+    # Training configuration
+    max_steps: 5.0e6  # Total training steps (5 million)
+    time_horizon: 1000  # Steps before experience is added to buffer
+    summary_freq: 10000  # How often to save training statistics
+    
+    # Checkpointing
+    keep_checkpoints: 5
+    checkpoint_interval: 50000
+    
+    # Self-play (optional - for competitive scenarios)
+    # self_play:
+    #   save_steps: 20000
+    #   team_change: 100000
+    #   swap_steps: 10000
+    #   play_against_latest_model_ratio: 0.5
+    #   window: 10
+
+# Environment configuration
+env_settings:
+  # Number of parallel environments
+  # Increase for faster training (if hardware allows)
+  num_envs: 4
+  
+  # Environment parameters
+  env_path: null  # Path to built executable (null for Unity Editor)
+  
+  # Rendering
+  no_graphics: false  # Set to true for faster training without visuals
+  
+  # Time scale
+  time_scale: 20  # Speed up training (1 = real-time, 20 = 20x faster)
+  
+  # Quality level
+  quality_level: 5  # Unity quality setting (0-5, lower = faster)
+
+# Engine configuration
+engine_settings:
+  width: 84
+  height: 84
+  quality_level: 5
+  time_scale: 20
+  target_frame_rate: -1  # -1 = as fast as possible
+  capture_frame_rate: 60
+
+# Training command:
+# mlagents-learn config/monster_training_config.yaml --run-id=monster_rl_v1
+
+# Resume training:
+# mlagents-learn config/monster_training_config.yaml --run-id=monster_rl_v1 --resume
+
+# Training with TensorBoard:
+# tensorboard --logdir results
+# Then open http://localhost:6006 in browser
