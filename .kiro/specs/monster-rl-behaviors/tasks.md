@@ -63,6 +63,7 @@
 
 
 
+
     - **Property 3: Flanking angle constraint**
     - **Validates: Requirements 1.3**
 
@@ -842,7 +843,7 @@
 
 
 
-  - Ensure all tests pass, ask the user if questions arise.
+  - Ensure all tests pass, ask the user if questions arise. 
 
 - [ ] 16. Integration and polish
   - [ ] 16.1 Integrate all systems with existing Monsters.cs
